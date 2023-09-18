@@ -1,0 +1,72 @@
+version: 2.1
+
+orbs:
+  codecov: codecov/codecov@3.2.2
+
+jobs:
+  "test":
+    parameters:
+      version:
+        type: string
+      modules:
+        type: boolean
+        default: true
+    docker:
+      - image: "golang:<< parameters.version >>"
+    working_directory: ~/go/src/github.com/bmf-san/gondra
+    environment:
+      GO111MODULE: "on"
+    steps:
+      - checkout
+      - run:
+          name: "Go version"
+          command: go version
+      - run:
+          name: "Fetch dependencies"
+          command: go mod download
+      - run:
+          name: "Run gofmt"
+          command: make gofmt
+      - run:
+          name: "Run vet"
+          command: make vet
+      - run:
+          name: "Run go test"
+          command: make test
+      - run:
+          name: "Install tools"
+          command: make install-tools
+      - run:
+          name: "Run errcheck"
+          command: make errcheck
+      - run:
+          name: "Run go staticcheck"
+          command: make staticcheck
+      - run:
+          name: "Run gosec"
+          command: make gosec
+      - run:
+          name: "Run benchstat"
+          command: make benchstat
+      - run:
+          name: "Run govulncheck"
+          command: make govulncheck
+      - run:
+          name: Build go
+          command: go build
+      - run:
+          name: Create a temporary directory for artifacts
+          command: mkdir -p /tmp/artifacts
+      - run:
+          name: Generate coverage
+          command: make test-cover OUT=<< parameters.version >>.out
+      - codecov/upload:
+          file: ./<< parameters.version >>.out
+
+workflows:
+  tests:
+    jobs:
+      - test:
+          matrix:
+            parameters:
+              version: ["1.21", "1.20"]
