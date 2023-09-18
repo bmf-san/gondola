@@ -1,4 +1,4 @@
-package gondra
+package gondola
 
 import "testing"
 

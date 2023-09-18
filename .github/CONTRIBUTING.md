@@ -1,6 +1,6 @@
 # Contributing
 
-1. Fork ([https://github.com/bmf-san/gondra/fork](https://github.com/bmf-san/gondra/fork))
+1. Fork ([https://github.com/bmf-san/gondola/fork](https://github.com/bmf-san/gondola/fork))
 2. Create a feature branch
 3. Commit your changes
 4. Rebase your local changes against the master branch

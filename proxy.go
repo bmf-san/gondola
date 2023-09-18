@@ -1,7 +1,7 @@
-package gondra
+package gondola
 
 import "fmt"
 
 func Serve() {
-	fmt.Println("Hello, Gondra!")
+	fmt.Println("Hello, gondola!")
 }
