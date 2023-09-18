@@ -13,7 +13,7 @@ jobs:
         default: true
     docker:
       - image: "golang:<< parameters.version >>"
-    working_directory: ~/go/src/github.com/bmf-san/gondra
+    working_directory: ~/go/src/github.com/bmf-san/gondola
     environment:
       GO111MODULE: "on"
     steps:

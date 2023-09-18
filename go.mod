@@ -1,3 +1,3 @@
-module github.com/bmf-san/gondra
+module github.com/bmf-san/gondola
 
 go 1.21.0

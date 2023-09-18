@@ -1,8 +1,8 @@
 launch.json
 .DS_STORE
 .vscode/
-gondra
-gondra.test
+gondola
+gondola.test
 debug.test
 *.out
 __debug_bin
