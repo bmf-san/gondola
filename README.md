@@ -38,9 +38,10 @@ go get -u github.com/bmf-san/gondola
 ```
 
 # Example
-A sample implemention is available.
+See below for how to use gondola.
 
-Please refer to [_examples](https://github.com/bmf-san/gondola/tree/main/_examples)
+- [_examples](https://github.com/bmf-san/gondola/tree/main/_examples)
+- [example_gondola_test.go](https://github.com/bmf-san/gondola/tree/main/example_gondola_test.go)
 
 # Usage
 // TODO: edit later

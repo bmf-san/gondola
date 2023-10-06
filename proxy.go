@@ -1,7 +1,14 @@
 package gondola
 
-import "fmt"
+import (
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+)
 
-func Serve() {
-	fmt.Println("Hello, gondola!")
+func New() {
+	backend, _ := url.Parse("http://localhost:8081")
+	proxy := httputil.NewSingleHostReverseProxy(backend)
+	http.Handle("/", proxy)
+	http.ListenAndServe(":8080", nil)
 }
