@@ -8,3 +8,7 @@ help:
 .PHONY: up
 up: ## Run docker-compose up
 	docker-compose up
+
+.PHONY: down
+down: ## Run docker-compose down
+	docker-compose down

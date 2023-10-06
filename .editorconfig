@@ -10,3 +10,10 @@ insert_final_newline = false
 
 [*.go]
 indent_style = tab
+
+[Makefile]
+indent_style = tab
+
+[*.{yml,yaml}]
+indent_size = 2
+trim_trailing_whitespace = false
