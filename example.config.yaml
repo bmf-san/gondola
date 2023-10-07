@@ -1,0 +1,5 @@
+upstreams:
+  - name: backend2
+    address: http://backend1:8081
+  - name: backend2
+    address: http://backend1:8082
