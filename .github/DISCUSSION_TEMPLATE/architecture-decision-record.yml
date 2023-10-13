@@ -1,6 +1,4 @@
-labels: [Architecture decision record (ADR)]
-
-
+labels: [Architecture Decision Record]
 body:
   - type: textarea
     attributes:
