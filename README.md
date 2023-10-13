@@ -21,6 +21,7 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
 - [Example](#example)
 - [Usage](#usage)
 - [Benchmark tests](#benchmark-tests)
+- [Discussion](#discussion)
 - [Wiki](#wiki)
 - [Contribution](#contribution)
 - [Sponsor](#sponsor)
@@ -48,6 +49,9 @@ See below for how to use gondola.
 
 # Benchmark tests
 // TODO: edit later
+
+# Discussion
+- [Discussions](https://github.com/bmf-san/gondola/discussions)
 
 # Wiki
 - [wiki](https://github.com/bmf-san/gondola/wiki)

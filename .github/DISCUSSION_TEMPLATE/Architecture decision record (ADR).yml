@@ -1,0 +1,44 @@
+labels: [Architecture decision record (ADR)]
+
+
+body:
+  - type: textarea
+    attributes:
+      label: Title
+      description: "cf. [congnitech.com - DOCUMENTING ARCHITECTURE DECISIONS](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Context
+      description: "cf. [congnitech.com - DOCUMENTING ARCHITECTURE DECISIONS](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Decision
+      description: "cf. [congnitech.com - DOCUMENTING ARCHITECTURE DECISIONS](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)"
+    validations:
+      required: true
+  - type: dropdown
+    attributes:
+      label: Status
+      description: "cf. [congnitech.com - DOCUMENTING ARCHITECTURE DECISIONS](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)"
+      options:
+        - "Proposed"
+        - "Accepted"
+        - "Deprecated"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Consequences
+      description: "cf. [congnitech.com - DOCUMENTING ARCHITECTURE DECISIONS](https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions)"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: References
+      description: "Links related to this ADR."
+    validations:
+      required: false
