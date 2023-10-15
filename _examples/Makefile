@@ -15,9 +15,9 @@ update: ## Update dependencies
 	cd ./proxy && go mod edit -require=github.com/bmf-san/gondola@$(CURRENT_BRANCH_GIT_COMMIT_HASH) && go mod tidy
 
 .PHONY: up
-up: ## Run docker-compose up
-	docker-compose up
+up: ## Run docker compose up
+	docker compose up
 
 .PHONY: down
-down: ## Run docker-compose down
-	docker-compose down
+down: ## Run docker compose down
+	docker compose down

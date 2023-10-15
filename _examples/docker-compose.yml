@@ -1,11 +1,17 @@
 version: "3.8"
 services:
-  backend:
-      container_name: "backend"
+  backend1:
+      container_name: "backend1"
       build:
-          context: ./backend
+          context: ./backend1
       ports:
           - "8081:8081"
+  backend2:
+      container_name: "backend2"
+      build:
+          context: ./backend2
+      ports:
+          - "8082:8082"
   proxy:
       container_name: "proxy"
       build:
