@@ -17,4 +17,4 @@ services:
       build:
           context: ./proxy
       ports:
-          - "8080:8080"
+          - "80:80"
