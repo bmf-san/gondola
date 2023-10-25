@@ -45,9 +45,10 @@ jobs:
       - run:
           name: "Run gosec"
           command: make gosec
-      - run:
-          name: "Run benchstat"
-          command: make benchstat
+      # TODO: Enable after implementing the benchmark test
+      # - run:
+      #     name: "Run benchstat"
+      #     command: make benchstat
       - run:
           name: "Run govulncheck"
           command: make govulncheck
