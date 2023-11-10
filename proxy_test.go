@@ -32,7 +32,7 @@ func TestServe(t *testing.T) {
 
 	data := `
 proxy:
-  port: 80
+  port: 8080
   read_header_timeout: 20
   shutdown_timeout: 3000
 upstreams:

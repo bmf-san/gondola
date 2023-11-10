@@ -9,7 +9,7 @@ import (
 func TestLoad(t *testing.T) {
 	data := `
 proxy:
-  port: 80
+  port: 8080
   read_header_timeout: 20
   shutdown_timeout: 3000
 upstreams:
@@ -21,7 +21,7 @@ upstreams:
 
 	expected := &Config{
 		Proxy{
-			Port:              "80",
+			Port:              "8080",
 			ReadHeaderTimeout: 20,
 			ShutdownTimeout:   3000,
 		},

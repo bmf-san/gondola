@@ -1,6 +1,5 @@
 # gondola
 [![GitHub release](https://img.shields.io/github/release/bmf-san/gondola.svg)](https://github.com/bmf-san/gondola/releases)
-[![CircleCI](https://circleci.com/gh/bmf-san/gondola/tree/main.svg?style=svg)](https://circleci.com/gh/bmf-san/gondola/tree/main)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bmf-san/gondola)](https://goreportcard.com/report/github.com/bmf-san/gondola)
 [![codecov](https://codecov.io/gh/bmf-san/gondola/branch/main/graph/badge.svg?token=ZLOLQKUD39)](https://codecov.io/gh/bmf-san/gondola)
 [![GitHub license](https://img.shields.io/github/license/bmf-san/gondola)](https://github.com/bmf-san/gondola/blob/main/LICENSE)
