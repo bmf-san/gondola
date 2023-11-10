@@ -8,6 +8,9 @@ permissions:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.21.x' ]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -15,6 +18,8 @@ jobs:
           fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v4
+        with:
+          go-version: ${{ matrix.go-version }}
       - name: Dry run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:

@@ -6,3 +6,6 @@ gondola.test
 debug.test
 *.out
 __debug_bin
+
+# _examples
+_examples/proxy/main

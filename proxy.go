@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,22 +15,56 @@ import (
 	"time"
 )
 
-func Load(reader io.Reader) (*Config, error) {
-	cfg := &Config{}
-	c, err := cfg.Load(reader)
+// CLI is a command line interface.
+type CLI interface {
+	Run()
+}
+
+// Gondola is a proxy server.
+type Gondola struct {
+	logger *slog.Logger
+	config *Config
+	server *http.Server
+}
+
+// NewGondola returns a new Gondola.
+func NewGondola(l *slog.Logger, r io.Reader) (*Gondola, error) {
+	c, err := loadConfig(r)
 	if err != nil {
 		return nil, err
 	}
+
+	s, err := newServer(c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Gondola{
+		logger: l,
+		config: c,
+		server: s,
+	}, nil
+}
+
+// loadConfig loads a configuration file.
+func loadConfig(r io.Reader) (*Config, error) {
+	cfg := &Config{}
+	c, err := cfg.Load(r)
+	if err != nil {
+		return nil, err
+	}
+
 	return c, nil
 }
 
-func NewServer(cfg *Config) (*http.Server, error) {
+// newServer returns a new http.Server.
+func newServer(c *Config) (*http.Server, error) {
 	s := &http.Server{
-		Addr:              ":" + cfg.Proxy.Port,
-		ReadHeaderTimeout: time.Duration(cfg.Proxy.ReadHeaderTimeout) * time.Second,
+		Addr:              ":" + c.Proxy.Port,
+		ReadHeaderTimeout: time.Duration(c.Proxy.ReadHeaderTimeout) * time.Millisecond,
 	}
 
-	for _, b := range cfg.Upstreams {
+	for _, b := range c.Upstreams {
 		pp, err := url.Parse(b.Target)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing upstream address: %w", err)
@@ -47,22 +82,13 @@ func NewServer(cfg *Config) (*http.Server, error) {
 // TODO:
 // need to dynamically load a configuration file.
 // For now, we will limit the implementation to just loading the file at startup.
-func Run(reader io.Reader) {
-	cfg, err := Load(reader)
-	if err != nil {
-		log.Fatal(err)
-	}
-
+// Run starts the proxy server.
+func (g *Gondola) Run() {
 	// TODO: do health check for upstreams.
 
-	srv, err := NewServer(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Print("Runing server on port " + cfg.Proxy.Port + "...")
+	g.logger.Info("Runing server on port " + g.config.Proxy.Port + "...")
 	go func() {
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
 			log.Fatal(err)
 		}
 	}()
@@ -71,10 +97,11 @@ func Run(reader io.Reader) {
 	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 	<-q
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(cfg.Proxy.ShutdownTimeout)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+	if err := g.server.Shutdown(ctx); err != nil {
+		g.logger.Error(err.Error())
 	}
-	log.Print("Server stopped gracefully")
+
+	g.logger.Info("Server stopped gracefully")
 }
