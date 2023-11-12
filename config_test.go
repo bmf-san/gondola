@@ -10,7 +10,7 @@ func TestLoad(t *testing.T) {
 	data := `
 proxy:
   port: 8080
-  read_header_timeout: 20
+  read_header_timeout: 2000
   shutdown_timeout: 3000
 upstreams:
   - host_name: backend1.local
@@ -22,7 +22,7 @@ upstreams:
 	expected := &Config{
 		Proxy{
 			Port:              "8080",
-			ReadHeaderTimeout: 20,
+			ReadHeaderTimeout: 2000,
 			ShutdownTimeout:   3000,
 		},
 		[]Upstream{
@@ -39,16 +39,16 @@ upstreams:
 
 	actual := &Config{}
 	if _, err := actual.Load(strings.NewReader(data)); err != nil {
-		t.Error(err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	if !reflect.DeepEqual(expected.Proxy, actual.Proxy) {
-		t.Errorf("Expected %+v, got %+v", expected.Proxy, actual.Proxy)
+		t.Fatalf("Expected %+v, got %+v", expected.Proxy, actual.Proxy)
 	}
 
 	for i, b := range actual.Upstreams {
 		if !reflect.DeepEqual(expected.Upstreams[i], b) {
-			t.Errorf("Expected %+v, got %+v", expected.Upstreams[i], b)
+			t.Fatalf("Expected %+v, got %+v", expected.Upstreams[i], b)
 		}
 	}
 }

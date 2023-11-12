@@ -1,15 +1,29 @@
 package gondola
 
 import (
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 	"time"
 )
 
-func TestServe(t *testing.T) {
+func TestNewGondola(t *testing.T) {
+	t.Skip("Skip it because it has been tested with TestRun")
+}
+
+func TestLoadConfig(t *testing.T) {
+	t.Skip("Skip it because it has been tested with TestLoad")
+}
+
+func TestNewServer(t *testing.T) {
+	t.Skip("Skip it because it has been tested with TestRun")
+}
+
+func TestRun(t *testing.T) {
 	backend1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("backend1"))
 	}))
@@ -22,18 +36,18 @@ func TestServe(t *testing.T) {
 
 	backend1URL, err := url.Parse(backend1.URL)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	backend2URL, err := url.Parse(backend2.URL)
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Expected no error, got %v", err)
 	}
 
 	data := `
 proxy:
   port: 8080
-  read_header_timeout: 20
+  read_header_timeout: 2000
   shutdown_timeout: 3000
 upstreams:
   - host_name: backend1.local
@@ -41,8 +55,14 @@ upstreams:
   - host_name: backend2.local
     target: ` + backend2URL.String() + `
 `
+
+	gondola, err := NewGondola(slog.New(slog.NewJSONHandler(os.Stdout, nil)), strings.NewReader(data))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
 	go func() {
-		Run(strings.NewReader(data))
+		gondola.Run()
 	}()
 
 	// TODO: Find a better way to wait for the server to start.

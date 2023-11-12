@@ -1,7 +1,58 @@
 package main
 
-import "fmt"
+import (
+	"flag"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"runtime/debug"
+
+	"github.com/bmf-san/gondola"
+)
+
+var cfgFile string
+
+func init() {
+	flag.StringVar(&cfgFile, "config", "config.yaml", "config file path")
+
+}
 
 func main() {
-	fmt.Println("hello")
+	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+
+	defer func() {
+		if x := recover(); x != nil {
+			l.Error(string(debug.Stack()))
+		}
+		os.Exit(1)
+	}()
+
+	flag.Parse()
+
+	if cfgFile == "" {
+		l.Error("config file is not specified")
+		os.Exit(1)
+	}
+
+	cfg, err := os.Open(filepath.Clean(cfgFile))
+	if err != nil {
+		l.Error(err.Error())
+		os.Exit(1)
+	}
+
+	defer func() {
+		err = cfg.Close()
+		if err != nil {
+			l.Error(err.Error())
+			os.Exit(1)
+		}
+	}()
+
+	gondola, err := gondola.NewGondola(l, cfg)
+	if err != nil {
+		l.Error(err.Error())
+		os.Exit(1)
+	}
+
+	gondola.Run()
 }

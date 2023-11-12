@@ -1,5 +1,6 @@
 proxy:
   port: 80
+  read_header_timeout: 2000
   shutdown_timeout: 3000
 upstreams:
   - host_name: backend1.local
