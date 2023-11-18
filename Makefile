@@ -40,7 +40,7 @@ vet: ## Run vet.
 
 .PHONY: errcheck
 errcheck: ## Run errcheck.
-	errcheck -exclude errcheck_excludes.txt ./...
+	errcheck -ignoretests ./...
 
 .PHONY: staticcheck
 staticcheck: ## Run staticcheck.
