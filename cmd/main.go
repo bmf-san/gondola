@@ -29,6 +29,11 @@ func main() {
 
 	flag.Parse()
 
+	if len(os.Args) == 1 {
+		flag.Usage()
+		os.Exit(1)
+	}
+
 	if cfgFile == "" {
 		l.Error("config file is not specified")
 		os.Exit(1)

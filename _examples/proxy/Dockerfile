@@ -4,4 +4,4 @@ WORKDIR /app
 
 COPY . .
 
-ENTRYPOINT ["./main"]
+ENTRYPOINT ["./main", "-config", "config.yaml"]

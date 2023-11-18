@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
@@ -87,9 +86,11 @@ func (g *Gondola) Run() {
 	// TODO: do health check for upstreams.
 
 	g.logger.Info("Runing server on port " + g.config.Proxy.Port + "...")
+
 	go func() {
 		if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-			log.Fatal(err)
+			g.logger.Error("Server stopped with error: " + err.Error())
+			return
 		}
 	}()
 
@@ -100,7 +101,8 @@ func (g *Gondola) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
 	defer cancel()
 	if err := g.server.Shutdown(ctx); err != nil {
-		g.logger.Error(err.Error())
+		g.logger.Error("Server stopped with error: " + err.Error())
+		return
 	}
 
 	g.logger.Info("Server stopped gracefully")
