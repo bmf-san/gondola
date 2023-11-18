@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestNewGondola(t *testing.T) {
@@ -65,9 +64,6 @@ upstreams:
 		gondola.Run()
 	}()
 
-	// TODO: Find a better way to wait for the server to start.
-	time.Sleep(time.Second)
-
 	for _, test := range []struct {
 		name    string
 		reqPath string
@@ -103,4 +99,6 @@ upstreams:
 			}
 		})
 	}
+
+	gondola.server.Close()
 }
