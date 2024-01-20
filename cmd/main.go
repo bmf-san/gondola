@@ -18,11 +18,9 @@ func init() {
 }
 
 func main() {
-	l := slog.New(slog.NewJSONHandler(os.Stdout, nil))
-
 	defer func() {
 		if x := recover(); x != nil {
-			l.Error(string(debug.Stack()))
+			slog.Error(string(debug.Stack()))
 		}
 		os.Exit(1)
 	}()
@@ -35,27 +33,27 @@ func main() {
 	}
 
 	if cfgFile == "" {
-		l.Error("config file is not specified")
+		slog.Error("config file is not specified")
 		os.Exit(1)
 	}
 
 	cfg, err := os.Open(filepath.Clean(cfgFile))
 	if err != nil {
-		l.Error(err.Error())
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
 	defer func() {
 		err = cfg.Close()
 		if err != nil {
-			l.Error(err.Error())
+			slog.Error(err.Error())
 			os.Exit(1)
 		}
 	}()
 
-	gondola, err := gondola.NewGondola(l, cfg)
+	gondola, err := gondola.NewGondola(cfg)
 	if err != nil {
-		l.Error(err.Error())
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 
