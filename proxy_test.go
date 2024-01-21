@@ -21,6 +21,7 @@ upstreams:
     target: http://backend1:8081
   - host_name: backend2.local
     target: http://backend2:8082
+log_level: -4
 `
 
 	r := strings.NewReader(data)
@@ -135,6 +136,7 @@ upstreams:
     target: ` + backend1URL.String() + `
   - host_name: backend2.local
     target: ` + backend2URL.String() + `
+log_level: -4
 `
 
 	cfg := &Config{}
@@ -183,6 +185,7 @@ upstreams:
     target: ` + backend1URL.String() + `
   - host_name: backend2.local
     target: ` + backend2URL.String() + `
+log_level: -4
 `
 	gondola, err := NewGondola(strings.NewReader(data))
 	if err != nil {

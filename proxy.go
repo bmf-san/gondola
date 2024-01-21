@@ -113,8 +113,7 @@ func newServer(c *Config) (*http.Server, error) {
 // TODO: Need to dynamically load a configuration file. For now, we will limit the implementation to just loading the file at startup.
 // Run starts the proxy server.
 func (g *Gondola) Run() {
-	// TODO: envから読み出し log level # -4: Debug 0: Info 4: Warn 8: Error
-	logger := NewLogger(0)
+	logger := NewLogger(g.config.LogLevel)
 	slog.SetDefault(logger.Logger)
 
 	// TODO: do health check for upstreams.
