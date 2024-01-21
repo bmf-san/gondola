@@ -41,7 +41,6 @@ go get -u github.com/bmf-san/gondola
 See below for how to use gondola.
 
 - [_examples](https://github.com/bmf-san/gondola/tree/main/_examples)
-- [example_gondola_test.go](https://github.com/bmf-san/gondola/tree/main/example_gondola_test.go)
 
 # Usage
 // TODO: edit later
