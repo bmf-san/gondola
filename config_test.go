@@ -17,6 +17,7 @@ upstreams:
     target: http://backend1:8081
   - host_name: backend2.local
     target: http://backend2:8082
+log_level: -4
 `
 
 	expected := &Config{
@@ -35,6 +36,7 @@ upstreams:
 				Target:   "http://backend2:8082",
 			},
 		},
+		4,
 	}
 
 	actual := &Config{}

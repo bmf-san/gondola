@@ -27,6 +27,7 @@ type Upstream struct {
 type Config struct {
 	Proxy     Proxy      `yaml:"proxy"`
 	Upstreams []Upstream `yaml:"upstreams"`
+	LogLevel  int        `yaml:"log_level"` // Debug:-4 Info:0 Warn:4 Error:8
 }
 
 // Load reads the configuration from a reader and returns a Config struct.

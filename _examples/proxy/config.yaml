@@ -7,3 +7,4 @@ upstreams:
     target: http://backend1:8081 # backend1　is the name of the container
   - host_name: backend2.local
     target: http://backend2:8082 # backend2　is the name of the container
+log_level: 0 # Debug:-4 Info:0 Warn:4 Error:8
