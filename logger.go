@@ -47,8 +47,8 @@ var ctxTraceIDKey = ctxTraceID{}
 
 // Handle adds a trace ID to the record.
 func (t TraceIDHandler) Handle(ctx context.Context, r slog.Record) error {
-	tid, ok := ctx.Value(ctxTraceIDKey).(string)
-	if ok {
+	tid := GetTraceID(ctx)
+	if tid != "" {
 		r.AddAttrs(slog.String("trace_id", tid))
 	}
 	return t.Handler.Handle(ctx, r)
