@@ -13,6 +13,13 @@ type Proxy struct {
 	Port              string `yaml:"port"`
 	ReadHeaderTimeout int    `yaml:"read_header_timeout"`
 	ShutdownTimeout   int    `yaml:"shutdown_timeout"`
+	TLSCertPath       string `yaml:"tls_cert_path"`
+	TLSKeyPath        string `yaml:"tls_key_path"`
+}
+
+// IsEnableTLS returns true if the proxy server is configured to use TLS.
+func (p *Proxy) IsEnableTLS() bool {
+	return p.TLSCertPath != "" && p.TLSKeyPath != ""
 }
 
 // Upstream is a struct that represents a backend server.

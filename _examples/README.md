@@ -15,8 +15,9 @@ sudo vim /etc/hosts
 
 ## Start a gondola
 ```sh
+make create-cert
 make up
 ```
 
 ## Access to a backend server
-`backend1.local` and `backend2.local` are available.
+`https://backend1.local` and `https://backend2.local` are available.

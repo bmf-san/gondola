@@ -6,12 +6,52 @@ import (
 	"testing"
 )
 
+func TestIsEnableTLS(t *testing.T) {
+	cases := []struct {
+		name     string
+		item     *Proxy
+		expected bool
+	}{
+		{
+			name:     "TLSCertPath and TLSKeyPath are empty",
+			item:     &Proxy{},
+			expected: false,
+		},
+		{
+			name:     "TLSCertPath is empty",
+			item:     &Proxy{TLSKeyPath: "key"},
+			expected: false,
+		},
+		{
+			name:     "TLSKeyPath is empty",
+			item:     &Proxy{TLSCertPath: "cert"},
+			expected: false,
+		},
+		{
+			name:     "TLSCertPath and TLSKeyPath are not empty",
+			item:     &Proxy{TLSCertPath: "cert", TLSKeyPath: "key"},
+			expected: true,
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			actual := c.item.IsEnableTLS()
+			if actual != c.expected {
+				t.Fatalf("Expected %v, got %v", c.expected, actual)
+			}
+		})
+	}
+}
+
 func TestLoad(t *testing.T) {
 	data := `
 proxy:
   port: 8080
   read_header_timeout: 2000
   shutdown_timeout: 3000
+  tls_cert_path: /path/to/cert
+  tls_key_path: /path/to/key
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081
@@ -25,6 +65,8 @@ log_level: -4
 			Port:              "8080",
 			ReadHeaderTimeout: 2000,
 			ShutdownTimeout:   3000,
+			TLSCertPath:       "/path/to/cert",
+			TLSKeyPath:        "/path/to/key",
 		},
 		[]Upstream{
 			{

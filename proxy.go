@@ -118,12 +118,19 @@ func (g *Gondola) Run() {
 
 	// TODO: do health check for upstreams.
 
-	slog.Info("Runing server on port " + g.config.Proxy.Port + "...")
-
 	go func() {
-		if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-			slog.Error("Server stopped with error: " + err.Error())
-			return
+		if g.config.Proxy.IsEnableTLS() {
+			slog.Info("Running server on port " + g.config.Proxy.Port + " with TLS...")
+			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
+				slog.Error("Server stopped with error: " + err.Error())
+				return
+			}
+		} else {
+			slog.Info("Running server on port " + g.config.Proxy.Port + "...")
+			if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
+				slog.Error("Server stopped with error: " + err.Error())
+				return
+			}
 		}
 	}()
 
