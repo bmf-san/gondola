@@ -1,7 +1,9 @@
 proxy:
-  port: 80
+  port: 443
   read_header_timeout: 2000
   shutdown_timeout: 3000
+  tls_cert_path: certificates/cert.pem
+  tls_key_path: certificates/key.pem
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081 # backend1　is the name of the container
