@@ -120,15 +120,15 @@ func (g *Gondola) Run() {
 
 	go func() {
 		if g.config.Proxy.IsEnableTLS() {
-			slog.Info("Running server on port " + g.config.Proxy.Port + " with TLS...")
+			slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
 			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
-				slog.Error("Server stopped with error: " + err.Error())
+				slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
 				return
 			}
 		} else {
 			slog.Info("Running server on port " + g.config.Proxy.Port + "...")
 			if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-				slog.Error("Server stopped with error: " + err.Error())
+				slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
 				return
 			}
 		}
@@ -141,7 +141,7 @@ func (g *Gondola) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
 	defer cancel()
 	if err := g.server.Shutdown(ctx); err != nil {
-		slog.Error("Server stopped with error: " + err.Error())
+		slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
 		return
 	}
 
