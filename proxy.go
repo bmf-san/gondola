@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 )
@@ -113,31 +112,30 @@ func newServer(c *Config) (*http.Server, error) {
 
 // TODO: Need to dynamically load a configuration file. For now, we will limit the implementation to just loading the file at startup.
 // Run starts the proxy server.
-func (g *Gondola) Run() {
+func (g *Gondola) Run() error {
 	logger := NewLogger(g.config.LogLevel)
 	slog.SetDefault(logger.Logger)
 
 	// TODO: do health check for upstreams.
 
-	var wg sync.WaitGroup
-	wg.Add(1)
+	ch := make(chan error, 1)
 	go func() {
-		defer wg.Done()
 		if g.config.Proxy.IsEnableTLS() {
 			slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
 			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
-				slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
-				return
+				ch <- err
 			}
 		} else {
 			slog.Info("Running server on port " + g.config.Proxy.Port + "...")
 			if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-				slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
-				return
+				ch <- err
 			}
 		}
 	}()
-	wg.Wait()
+	e := <-ch
+	if e != nil {
+		return e
+	}
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
@@ -147,9 +145,10 @@ func (g *Gondola) Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
 	defer cancel()
 	if err := g.server.Shutdown(ctx); err != nil {
-		slog.Error(fmt.Sprintf("Server stopped with error: %v", err))
-		return
+		slog.Error(fmt.Sprintf("Shutdown failed: %v", err))
+		return err
 	}
 
 	slog.Info("Server stopped gracefully")
+	return nil
 }
