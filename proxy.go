@@ -100,6 +100,13 @@ func newServer(c *Config) (*http.Server, error) {
 		ph := &ProxyHandler{proxy: proxy}
 		mux.HandleFunc(b.HostName+"/", ph.Handler)
 	}
+	for _, sf := range c.Proxy.StaticFiles {
+		mux.Handle(sf.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := WithTraceID(r.Context())
+			slog.InfoContext(ctx, "static_files_response", slog.Time("time", time.Now()), slog.String("client_ip", r.RemoteAddr), slog.String("req_x_forwarded_for", r.Header.Get("X-Forwarded-For")), slog.String("req_method", r.Method), slog.String("req_uri", r.RequestURI), slog.Int64("req_size", r.ContentLength), slog.String("referer", r.Header.Get("referer")), slog.String("req_ua", r.UserAgent()))
+			http.StripPrefix(sf.Path, http.FileServer(http.Dir(sf.Dir))).ServeHTTP(w, r)
+		}))
+	}
 
 	s := &http.Server{
 		Addr:              ":" + c.Proxy.Port,

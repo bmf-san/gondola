@@ -4,6 +4,9 @@ proxy:
   shutdown_timeout: 3000
   tls_cert_path: certificates/cert.pem
   tls_key_path: certificates/key.pem
+  static_files:
+    - path: /public/
+      dir: ./public
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081 # backend1　is the name of the container

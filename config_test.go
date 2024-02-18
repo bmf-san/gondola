@@ -52,6 +52,9 @@ proxy:
   shutdown_timeout: 3000
   tls_cert_path: /path/to/cert
   tls_key_path: /path/to/key
+  static_files:
+    - path: /public/
+      dir: testdata/public
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081
@@ -67,6 +70,12 @@ log_level: -4
 			ShutdownTimeout:   3000,
 			TLSCertPath:       "/path/to/cert",
 			TLSKeyPath:        "/path/to/key",
+			StaticFiles: []StaticFile{
+				{
+					Path: "/public/",
+					Dir:  "testdata/public",
+				},
+			},
 		},
 		[]Upstream{
 			{
