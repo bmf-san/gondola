@@ -19,8 +19,8 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
 - [Install](#install)
 - [Example](#example)
 - [Usage](#usage)
-- [Benchmark tests](#benchmark-tests)
-- [Discussion](#discussion)
+- [Projects](#projects)
+- [ADR](#adr)
 - [Wiki](#wiki)
 - [Contribution](#contribution)
 - [Sponsor](#sponsor)
@@ -30,12 +30,19 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
 - [Author](#author)
 
 # Features
-// TODO: edit later
+- Virtual host
+- Configuration file loader
+- TLS
+- Serve static files
+- Access log
+- CLI and binary distribution
 
 # Install
 ```
 go get -u github.com/bmf-san/gondola
 ```
+
+or you can download the binary from the [release page](https://github.com/bmf-san/gondola/releases).
 
 # Example
 See below for how to use gondola.
@@ -43,13 +50,17 @@ See below for how to use gondola.
 - [_examples](https://github.com/bmf-san/gondola/tree/main/_examples)
 
 # Usage
-// TODO: edit later
+Run a binary with the option.
 
-# Benchmark tests
-// TODO: edit later
+```sh
+gondola -config config.yaml
+```
 
-# Discussion
-- [Discussions](https://github.com/bmf-san/gondola/discussions)
+# Projects
+- [The gondola's board](https://github.com/users/bmf-san/projects/1/views/1)
+
+# ADR
+- [ADR](https://github.com/bmf-san/gondola/discussions?discussions_q=is%3Aopen+label%3AADR)
 
 # Wiki
 - [wiki](https://github.com/bmf-san/gondola/wiki)
