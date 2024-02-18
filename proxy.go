@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -118,7 +119,10 @@ func (g *Gondola) Run() {
 
 	// TODO: do health check for upstreams.
 
+	var wg sync.WaitGroup
+	wg.Add(1)
 	go func() {
+		defer wg.Done()
 		if g.config.Proxy.IsEnableTLS() {
 			slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
 			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
@@ -133,9 +137,11 @@ func (g *Gondola) Run() {
 			}
 		}
 	}()
+	wg.Wait()
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer signal.Stop(q)
 	<-q
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
