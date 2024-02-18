@@ -100,6 +100,13 @@ func newServer(c *Config) (*http.Server, error) {
 		ph := &ProxyHandler{proxy: proxy}
 		mux.HandleFunc(b.HostName+"/", ph.Handler)
 	}
+	for _, sf := range c.Proxy.StaticFiles {
+		mux.Handle(sf.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := WithTraceID(r.Context())
+			slog.InfoContext(ctx, "static_files_response", slog.Time("time", time.Now()), slog.String("client_ip", r.RemoteAddr), slog.String("req_x_forwarded_for", r.Header.Get("X-Forwarded-For")), slog.String("req_method", r.Method), slog.String("req_uri", r.RequestURI), slog.Int64("req_size", r.ContentLength), slog.String("referer", r.Header.Get("referer")), slog.String("req_ua", r.UserAgent()))
+			http.StripPrefix(sf.Path, http.FileServer(http.Dir(sf.Dir))).ServeHTTP(w, r)
+		}))
+	}
 
 	s := &http.Server{
 		Addr:              ":" + c.Proxy.Port,
@@ -112,38 +119,43 @@ func newServer(c *Config) (*http.Server, error) {
 
 // TODO: Need to dynamically load a configuration file. For now, we will limit the implementation to just loading the file at startup.
 // Run starts the proxy server.
-func (g *Gondola) Run() {
+func (g *Gondola) Run() error {
 	logger := NewLogger(g.config.LogLevel)
 	slog.SetDefault(logger.Logger)
 
 	// TODO: do health check for upstreams.
 
+	ch := make(chan error, 1)
 	go func() {
 		if g.config.Proxy.IsEnableTLS() {
-			slog.Info("Running server on port " + g.config.Proxy.Port + " with TLS...")
+			slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
 			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
-				slog.Error("Server stopped with error: " + err.Error())
-				return
+				ch <- err
 			}
 		} else {
 			slog.Info("Running server on port " + g.config.Proxy.Port + "...")
 			if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-				slog.Error("Server stopped with error: " + err.Error())
-				return
+				ch <- err
 			}
 		}
 	}()
+	e := <-ch
+	if e != nil {
+		return e
+	}
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer signal.Stop(q)
 	<-q
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
 	defer cancel()
 	if err := g.server.Shutdown(ctx); err != nil {
-		slog.Error("Server stopped with error: " + err.Error())
-		return
+		slog.Error(fmt.Sprintf("Shutdown failed: %v", err))
+		return err
 	}
 
 	slog.Info("Server stopped gracefully")
+	return nil
 }

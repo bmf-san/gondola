@@ -10,11 +10,18 @@ import (
 // Port is the port that the proxy server will listen on.
 // ShutdownTimeout is the timeout in milliseconds for the proxy server to shutdown.
 type Proxy struct {
-	Port              string `yaml:"port"`
-	ReadHeaderTimeout int    `yaml:"read_header_timeout"`
-	ShutdownTimeout   int    `yaml:"shutdown_timeout"`
-	TLSCertPath       string `yaml:"tls_cert_path"`
-	TLSKeyPath        string `yaml:"tls_key_path"`
+	Port              string       `yaml:"port"`
+	ReadHeaderTimeout int          `yaml:"read_header_timeout"`
+	ShutdownTimeout   int          `yaml:"shutdown_timeout"`
+	TLSCertPath       string       `yaml:"tls_cert_path"`
+	TLSKeyPath        string       `yaml:"tls_key_path"`
+	StaticFiles       []StaticFile `yaml:"static_files"`
+}
+
+// StaticFile is a struct that represents a static file configuration.
+type StaticFile struct {
+	Path string `yaml:"path"`
+	Dir  string `yaml:"dir"`
 }
 
 // IsEnableTLS returns true if the proxy server is configured to use TLS.

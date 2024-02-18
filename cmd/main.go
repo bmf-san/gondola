@@ -57,5 +57,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	gondola.Run()
+	err = gondola.Run()
+	if err != nil {
+		slog.Error(err.Error())
+		os.Exit(1)
+	}
 }

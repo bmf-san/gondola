@@ -16,6 +16,11 @@ proxy:
   port: 8080
   read_header_timeout: 2000
   shutdown_timeout: 3000
+  tls_cert_path: /path/to/cert
+  tls_key_path: /path/to/key
+  static_files:
+    - path: /public/
+      dir: testdata/public
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081
@@ -131,6 +136,9 @@ proxy:
   port: 8080
   read_header_timeout: 2000
   shutdown_timeout: 3000
+  static_files:
+    - path: /public/
+      dir: testdata/public
 upstreams:
   - host_name: backend1.local
     target: ` + backend1URL.String() + `
@@ -175,11 +183,15 @@ func TestRun(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
+	// without TLS config
 	data := `
 proxy:
   port: 8080
   read_header_timeout: 2000
   shutdown_timeout: 3000
+  static_files:
+    - path: /public/
+      dir: testdata/public
 upstreams:
   - host_name: backend1.local
     target: ` + backend1URL.String() + `
@@ -213,6 +225,12 @@ log_level: -4
 			name:    "request to backend2",
 			reqPath: "http://backend2.local:8080/",
 			body:    "backend2",
+			code:    http.StatusOK,
+		},
+		{
+			name:    "request to static file",
+			reqPath: "http://localhost:8080/public/index.html",
+			body:    "test",
 			code:    http.StatusOK,
 		},
 	} {
