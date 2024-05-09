@@ -1,3 +1,5 @@
+[English](https://github.com/bmf-san/gondola) [日本語](https://github.com/bmf-san/gondola/blob/master/README-ja.md)
+
 # gondola
 [![GitHub release](https://img.shields.io/github/release/bmf-san/gondola.svg)](https://github.com/bmf-san/gondola/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bmf-san/gondola)](https://goreportcard.com/report/github.com/bmf-san/gondola)
@@ -31,18 +33,24 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
 
 # Features
 - Virtual host
+  - You can set up multiple hosts on upstream servers.
 - Configuration file loader
+  - You can use configuration files in YAML format.
 - TLS
+  - You can use TLS by preparing a TLS certificate.
 - Serve static files
+  - You can serve static files.
 - Access log
-- CLI and binary distribution
+  - Outputs Proxy access logs and Upstream servers access logs.
+- Binary distribution
+  - Distributing cross-compiled binaries.
 
 # Install
 ```
 go get -u github.com/bmf-san/gondola
 ```
 
-or you can download the binary from the [release page](https://github.com/bmf-san/gondola/releases).
+Also, you can download the binary from the [release page](https://github.com/bmf-san/gondola/releases), and you can use it.
 
 # Example
 See below for how to use gondola.

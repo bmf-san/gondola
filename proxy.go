@@ -75,7 +75,6 @@ func (h *ProxyHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	start := time.Now()
 	ctx := WithTraceID(r.Context())
 	defer func() {
-		// TODO: Is it possible to merge the logs output by roundtrip?
 		slog.InfoContext(ctx, "proxy_response", slog.Time("time", time.Now()), slog.String("client_ip", r.RemoteAddr), slog.String("req_x_forwarded_for", r.Header.Get("X-Forwarded-For")), slog.String("req_method", r.Method), slog.String("req_uri", r.RequestURI), slog.Int64("req_size", r.ContentLength), slog.Float64("proxy_response_time", time.Since(start).Seconds()), slog.String("referer", r.Header.Get("referer")), slog.String("req_ua", r.UserAgent()))
 	}()
 	h.proxy.ServeHTTP(w, r.WithContext(ctx))
