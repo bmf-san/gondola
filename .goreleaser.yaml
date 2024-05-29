@@ -51,6 +51,30 @@ dockers:
     goarch: arm64
     build_flag_templates:
       - --platform=linux/arm64
+  - image_templates:
+      - bmfsan/gondola:latest-386
+      - bmfsan/gondola:{{ .Version }}-386
+    use: buildx
+    goos: linux
+    goarch: "386"
+    build_flag_templates:
+      - --platform=linux/386
+  - image_templates:
+      - bmfsan/gondola:latest-arm
+      - bmfsan/gondola:{{ .Version }}-arm
+    use: buildx
+    goos: linux
+    goarch: arm
+    build_flag_templates:
+      - --platform=linux/arm
+  - image_templates:
+      - bmfsan/gondola:latest-ppc64
+      - bmfsan/gondola:{{ .Version }}-ppc64
+    use: buildx
+    goos: linux
+    goarch: ppc64
+    build_flag_templates:
+      - --platform=linux/ppc64
 
 archives:
   - format: tar.gz
