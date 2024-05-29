@@ -10,6 +10,8 @@ jobs:
         go-version: [ '1.22.3' ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Add hosts to /etc/hosts
         # For testing purposes, we need to add the hosts to /etc/hosts
         run: (echo "127.0.0.1 backend1.local" && echo "127.0.0.1 backend2.local") | sudo tee -a /etc/hosts

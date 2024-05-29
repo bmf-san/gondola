@@ -1,4 +1,14 @@
+version: 1
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
 project_name: gondola
+
 builds:
   - env:
       - CGO_ENABLED=0
@@ -8,6 +18,7 @@ builds:
       - amd64
       - arm64
     main: ./cmd/main.go
+
 dockers:
   - image_templates:
       - bmf-san/gondola:latest-amd64
@@ -25,3 +36,25 @@ dockers:
     goarch: arm64
     build_flag_templates:
       - --platform=linux/arm64
+
+archives:
+  - format: tar.gz
+    # this name template makes the OS and Arch compatible with the results of `uname`.
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    # use zip for windows archives
+    format_overrides:
+      - goos: windows
+        format: zip
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
