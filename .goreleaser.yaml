@@ -1,0 +1,27 @@
+project_name: gondola
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    main: ./cmd/main.go
+dockers:
+  - image_templates:
+      - bmf-san/gondola:latest-amd64
+      - bmf-san/gondola:{{ .Version }}-amd64
+    use: buildx
+    goos: linux
+    goarch: amd64
+    build_flag_templates:
+      - --platform=linux/amd64
+  - image_templates:
+      - bmf-san/gondola:latest-arm64
+      - bmf-san/gondola:{{ .Version }}-arm64
+    use: buildx
+    goos: linux
+    goarch: arm64
+    build_flag_templates:
+      - --platform=linux/arm64
