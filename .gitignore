@@ -10,3 +10,4 @@ __debug_bin
 # _examples
 _examples/proxy/main
 _examples/proxy/certificates
+dist/
