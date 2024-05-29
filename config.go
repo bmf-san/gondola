@@ -2,6 +2,7 @@ package gondola
 
 import (
 	"io"
+	"os"
 
 	"gopkg.in/yaml.v3"
 )
@@ -50,6 +51,7 @@ func (c *Config) Load(reader io.Reader) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	data = []byte(os.ExpandEnv(string(data)))
 	if err := yaml.Unmarshal(data, &c); err != nil {
 		return nil, err
 	}
