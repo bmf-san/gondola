@@ -1,6 +1,7 @@
 package gondola
 
 import (
+	"os"
 	"reflect"
 	"strings"
 	"testing"
@@ -45,9 +46,10 @@ func TestIsEnableTLS(t *testing.T) {
 }
 
 func TestLoad(t *testing.T) {
+	os.Setenv("PORT", "8080")
 	data := `
 proxy:
-  port: 8080
+  port: ${PORT}
   read_header_timeout: 2000
   shutdown_timeout: 3000
   tls_cert_path: /path/to/cert
