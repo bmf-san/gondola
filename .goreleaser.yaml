@@ -21,16 +21,16 @@ builds:
 
 dockers:
   - image_templates:
-      - bmf-san/gondola:latest-amd64
-      - bmf-san/gondola:{{ .Version }}-amd64
+      - bmfsan/gondola:latest-amd64
+      - bmfsan/gondola:{{ .Version }}-amd64
     use: buildx
     goos: linux
     goarch: amd64
     build_flag_templates:
       - --platform=linux/amd64
   - image_templates:
-      - bmf-san/gondola:latest-arm64
-      - bmf-san/gondola:{{ .Version }}-arm64
+      - bmfsan/gondola:latest-arm64
+      - bmfsan/gondola:{{ .Version }}-arm64
     use: buildx
     goos: linux
     goarch: arm64
