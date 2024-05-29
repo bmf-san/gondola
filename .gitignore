@@ -6,6 +6,7 @@ gondola.test
 debug.test
 *.out
 __debug_bin
+dist/
 
 # _examples
 _examples/proxy/main
