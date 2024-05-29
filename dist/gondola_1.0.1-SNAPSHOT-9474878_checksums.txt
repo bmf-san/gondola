@@ -1,0 +1,2 @@
+ba0d1656963ef4af297efcce41f96002b3a3551ca65a7c987930a5f03e653f88  gondola_1.0.1-SNAPSHOT-9474878_linux_amd64.tar.gz
+d99ba526985b6cda4fd5b386ee466830be94470bd98f47faa960970be4348a3c  gondola_1.0.1-SNAPSHOT-9474878_linux_arm64.tar.gz

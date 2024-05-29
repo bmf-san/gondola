@@ -19,6 +19,9 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
 - [Table of contents](#table-of-contents)
 - [Features](#features)
 - [Install](#install)
+  - [Go](#go)
+  - [Binary](#binary)
+  - [Docker](#docker)
 - [Example](#example)
 - [Usage](#usage)
 - [Projects](#projects)
@@ -46,11 +49,16 @@ This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac
   - Distributing cross-compiled binaries.
 
 # Install
+## Go
 ```
 go get -u github.com/bmf-san/gondola
 ```
 
-Also, you can download the binary from the [release page](https://github.com/bmf-san/gondola/releases), and you can use it.
+## Binary
+You can download the binary from the [release page](https://github.com/bmf-san/gondola/releases), and you can use it.
+
+## Docker
+<!-- TODO: -->
 
 # Example
 See below for how to use gondola.
