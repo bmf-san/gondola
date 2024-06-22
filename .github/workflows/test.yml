@@ -22,13 +22,12 @@ jobs:
       - name: Run test
         run: make test
       - name: Run coverage
-        run: make test-cover OUT=coverage >>.out
-      - uses: actions/checkout@main
-      - uses: codecov/codecov-action@v4
+        run: make test-cover OUT=coverage.out
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4.5.0
         with:
           fail_ci_if_error: true
-          files: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
+          file: ./coverage.out
           token: ${{ secrets.CODECOV_TOKEN }}
           verbose: true
+
