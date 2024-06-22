@@ -1,3 +1,3 @@
 module github.com/bmf-san/gondola/_examples/backend
 
-go 1.22.3
+go 1.22.4
