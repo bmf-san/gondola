@@ -1,9 +1,12 @@
 package gondola
 
 import (
+	"bytes"
+	"errors"
 	"reflect"
 	"strings"
 	"testing"
+	"testing/iotest"
 )
 
 func TestIsEnableTLS(t *testing.T) {
@@ -104,5 +107,24 @@ log_level: -4
 		if !reflect.DeepEqual(expected.Upstreams[i], b) {
 			t.Fatalf("Expected %+v, got %+v", expected.Upstreams[i], b)
 		}
+	}
+}
+
+func TestLoadReadAllError(t *testing.T) {
+	reader := iotest.ErrReader(errors.New("error"))
+	var c Config
+	_, err := c.Load(reader)
+	if err == nil {
+		t.Fatalf("Expected error, got nil")
+	}
+}
+
+func TestLoadUnmarshalError(t *testing.T) {
+	data := ":\n"
+	reader := bytes.NewBufferString(data)
+	var c Config
+	_, err := c.Load(reader)
+	if err == nil {
+		t.Fatalf("Expected error, got nil")
 	}
 }
