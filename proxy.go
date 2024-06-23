@@ -14,23 +14,17 @@ import (
 	"time"
 )
 
-// Gondola is a proxy server.
-type Gondola struct {
-	config *Config
-	server *http.Server
-}
-
 // NewGondola returns a new Gondola.
 func NewGondola(r io.Reader) (*Gondola, error) {
 	cfg := &Config{}
 	c, err := cfg.Load(r)
 	if err != nil {
-		return nil, err
+		return nil, &ConfigLoadError{Err: err}
 	}
 
 	s, err := newServer(c)
 	if err != nil {
-		return nil, err
+		return nil, &ProxyServerError{Err: err}
 	}
 
 	return &Gondola{

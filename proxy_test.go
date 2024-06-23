@@ -1,6 +1,7 @@
 package gondola
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -28,9 +29,7 @@ upstreams:
     target: http://backend2:8082
 log_level: -4
 `
-
-	r := strings.NewReader(data)
-	gondola, err := NewGondola(r)
+	gondola, err := NewGondola(strings.NewReader(data))
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -41,6 +40,46 @@ log_level: -4
 		t.Errorf("Expected server, got nil")
 	}
 	gondola.server.Close()
+}
+
+func TestNewGondolaConfigLoadError(t *testing.T) {
+	r := strings.NewReader("invalid")
+	_, err := NewGondola(r)
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	var cfgErr *ConfigLoadError
+	if !errors.As(err, &cfgErr) {
+		t.Errorf("Expected error, got %v", err)
+	}
+}
+
+func TestNewGondolaProxyServerError(t *testing.T) {
+	data := `
+proxy:
+  port: 8080
+  read_header_timeout: 2000
+  shutdown_timeout: 3000
+  tls_cert_path: /path/to/cert
+  tls_key_path: /path/to/key
+  static_files:
+    - path: /public/
+      dir: testdata/public
+upstreams:
+  - host_name: backend1.local
+    target: "://"
+  - host_name: backend2.local
+    target: "://"
+log_level: -4
+`
+	_, err := NewGondola(strings.NewReader(data))
+	if err == nil {
+		t.Errorf("Expected error, got nil")
+	}
+	var psErr *ProxyServerError
+	if !errors.As(err, &psErr) {
+		t.Errorf("Expected error, got %v", err)
+	}
 }
 
 func TestNewLogRoundTripper(t *testing.T) {
