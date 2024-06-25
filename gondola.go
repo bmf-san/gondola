@@ -1,16 +1,15 @@
 package gondola
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"log/slog"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
+
+// Runner is an interface that defines the Run method.
+type Runner interface {
+	Run() error
+}
 
 // NewGondola returns a new Gondola.
 func NewGondola(r io.Reader) (*Gondola, error) {
@@ -39,37 +38,16 @@ func (g *Gondola) Run() error {
 
 	// TODO: do health check for upstreams.
 
-	ch := make(chan error, 1)
-	go func() {
-		if g.config.Proxy.IsEnableTLS() {
-			slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
-			if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != http.ErrServerClosed {
-				ch <- err
-			}
-		} else {
-			slog.Info("Running server on port " + g.config.Proxy.Port + "...")
-			if err := g.server.ListenAndServe(); err != http.ErrServerClosed {
-				ch <- err
-			}
+	if g.config.Proxy.IsEnableTLS() {
+		slog.Info(fmt.Sprintf("Running server on port %s with TLS...", g.config.Proxy.Port))
+		if err := g.server.ListenAndServeTLS(g.config.Proxy.TLSCertPath, g.config.Proxy.TLSKeyPath); err != nil {
+			slog.Error("Error running server with TLS: " + err.Error())
 		}
-	}()
-	e := <-ch
-	if e != nil {
-		return e
+	} else {
+		slog.Info("Running server on port " + g.config.Proxy.Port + "...")
+		if err := g.server.ListenAndServe(); err != nil {
+			slog.Error("Error running server: " + err.Error())
+		}
 	}
-
-	q := make(chan os.Signal, 1)
-	signal.Notify(q, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer signal.Stop(q)
-	<-q
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(g.config.Proxy.ShutdownTimeout)*time.Millisecond)
-	defer cancel()
-	if err := g.server.Shutdown(ctx); err != nil {
-		slog.Error(fmt.Sprintf("Shutdown failed: %v", err))
-		return err
-	}
-
-	slog.Info("Server stopped gracefully")
 	return nil
 }

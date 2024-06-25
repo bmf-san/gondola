@@ -1,6 +1,7 @@
 package gondola
 
 import (
+	"crypto/tls"
 	"errors"
 	"io"
 	"net/http"
@@ -13,7 +14,7 @@ import (
 func TestNewGondola(t *testing.T) {
 	data := `
 proxy:
-  port: 8080
+  port: 443
   read_header_timeout: 2000
   shutdown_timeout: 3000
   tls_cert_path: /path/to/cert
@@ -159,6 +160,110 @@ log_level: -4
 				t.Fatal(err)
 			}
 			res, err := http.DefaultClient.Do(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			b, err := io.ReadAll(res.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if res.StatusCode != test.code {
+				t.Errorf("Expected status code %d, got %d", test.code, res.StatusCode)
+			}
+			if string(b) != test.body {
+				t.Errorf("Expected body %s, got %s", test.body, string(b))
+			}
+		})
+	}
+	gondola.server.Close()
+}
+
+func TestRunWithTLS(t *testing.T) {
+	backend1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("backend1"))
+	}))
+	defer backend1.Close()
+
+	backend2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("backend2"))
+	}))
+	defer backend2.Close()
+
+	backend1URL, err := url.Parse(backend1.URL)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	backend2URL, err := url.Parse(backend2.URL)
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// with TLS config
+	data := `
+proxy:
+  port: 5443
+  read_header_timeout: 2000
+  shutdown_timeout: 3000
+  tls_cert_path: testdata/certificates/cert.pem
+  tls_key_path: testdata/certificates/key.pem
+  static_files:
+    - path: /public/
+      dir: testdata/public
+upstreams:
+  - host_name: backend1.local
+    target: ` + backend1URL.String() + `
+  - host_name: backend2.local
+    target: ` + backend2URL.String() + `
+log_level: -4
+`
+	gondola, err := NewGondola(strings.NewReader(data))
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	go func() {
+		gondola.Run()
+	}()
+
+	for _, test := range []struct {
+		name    string
+		reqPath string
+		path    string
+		body    string
+		code    int
+	}{
+		{
+			name:    "request to backend1",
+			reqPath: "https://backend1.local:5443",
+			body:    "backend1",
+			code:    http.StatusOK,
+		},
+		{
+			name:    "request to backend2",
+			reqPath: "https://backend2.local:5443",
+			body:    "backend2",
+			code:    http.StatusOK,
+		},
+		{
+			name:    "request to static file",
+			reqPath: "https://localhost:5443/public/index.html",
+			body:    "test",
+			code:    http.StatusOK,
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			req, err := http.NewRequest(http.MethodGet, test.reqPath, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			client := &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+				},
+			}
+			res, err := client.Do(req)
 			if err != nil {
 				t.Fatal(err)
 			}
