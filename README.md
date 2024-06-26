@@ -8,7 +8,6 @@
 [![GitHub license](https://img.shields.io/github/license/bmf-san/gondola)](https://github.com/bmf-san/gondola/blob/main/LICENSE)
 [![Go Reference](https://pkg.go.dev/badge/github.com/bmf-san/gondola.svg)](https://pkg.go.dev/github.com/bmf-san/gondola)
 [![Sourcegraph](https://sourcegraph.com/github.com/bmf-san/gondola/-/badge.svg)](https://sourcegraph.com/github.com/bmf-san/gondola?badge)
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 
 A golang reverse proxy.
 
