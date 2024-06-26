@@ -1,6 +1,7 @@
 [English](https://github.com/bmf-san/gondola) [日本語](https://github.com/bmf-san/gondola/blob/master/README-ja.md)
 
 # gondola
+[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
 [![GitHub release](https://img.shields.io/github/release/bmf-san/gondola.svg)](https://github.com/bmf-san/gondola/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/bmf-san/gondola)](https://goreportcard.com/report/github.com/bmf-san/gondola)
 [![codecov](https://codecov.io/gh/bmf-san/gondola/branch/main/graph/badge.svg?token=ZLOLQKUD39)](https://codecov.io/gh/bmf-san/gondola)
