@@ -59,12 +59,12 @@ func newServer(c *Config) (*http.Server, error) {
 			return nil, fmt.Errorf("error parsing upstream address: %w", err)
 		}
 
-		proxy := &httputil.ReverseProxy{
-			Transport: NewLogRoundTripper(http.DefaultTransport),
-			Director: func(r *http.Request) {
-				r.Header.Set("X-Trace-ID", GetTraceID(r.Context()))
-				r.URL = pp
-			},
+		proxy := httputil.NewSingleHostReverseProxy(pp)
+		proxy.Transport = NewLogRoundTripper(http.DefaultTransport)
+		originalDirector := proxy.Director
+		proxy.Director = func(r *http.Request) {
+			originalDirector(r)
+			r.Header.Set("X-Trace-ID", GetTraceID(r.Context()))
 		}
 		ph := &ProxyHandler{proxy: proxy}
 		mux.HandleFunc(b.HostName+"/", ph.Handler)
