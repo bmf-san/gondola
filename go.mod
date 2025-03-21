@@ -1,6 +1,6 @@
 module github.com/bmf-san/gondola
 
-go 1.22.4
+go 1.24.1
 
 require (
 	github.com/google/uuid v1.6.0
