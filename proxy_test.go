@@ -1,106 +1,181 @@
 package gondola
 
 import (
+	"bytes"
+	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
+
+type mockTransport struct {
+	response *http.Response
+	err      error
+}
+
+func (t *mockTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return t.response, t.err
+}
 
 func TestNewLogRoundTripper(t *testing.T) {
 	transport := http.DefaultTransport
 	lrt := NewLogRoundTripper(transport)
 	if lrt == nil {
-		t.Errorf("Expected LogRoundTripper, got nil")
+		t.Error("Expected LogRoundTripper to not be nil")
+	}
+	if lrt != nil && lrt.transport != transport {
+		t.Errorf("Expected transport to be %v, got %v", transport, lrt.transport)
 	}
 }
 
 func TestRoundTrip(t *testing.T) {
-	lrt := &LogRoundTripper{
-		transport: http.DefaultTransport,
+	tests := []struct {
+		name          string
+		transport     http.RoundTripper
+		expectedError bool
+	}{
+		{
+			name:          "successful request",
+			transport:     http.DefaultTransport,
+			expectedError: false,
+		},
+		{
+			name: "transport error",
+			transport: &mockTransport{
+				err: errors.New("mock transport error"),
+			},
+			expectedError: true,
+		},
 	}
-	dummy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("dummy"))
-	}))
-	defer dummy.Close()
-	dummyURL, err := url.Parse(dummy.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	resp, err := lrt.RoundTrip(httptest.NewRequest(http.MethodGet, dummyURL.String(), nil))
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if resp == nil {
-		t.Errorf("Expected response, got nil")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			slog.SetDefault(logger)
+
+			lrt := &LogRoundTripper{transport: tt.transport}
+			dummy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Write([]byte("dummy"))
+			}))
+			defer dummy.Close()
+
+			req := httptest.NewRequest(http.MethodGet, dummy.URL, nil)
+			resp, err := lrt.RoundTrip(req)
+
+			if tt.expectedError && err == nil {
+				t.Error("Expected error but got none")
+			}
+			if !tt.expectedError {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if resp == nil {
+					t.Error("Expected response but got nil")
+				}
+			}
+
+			if !tt.expectedError {
+				logOutput := buf.String()
+				if !strings.Contains(logOutput, `"level":"INFO"`) {
+					t.Error("Expected INFO log level")
+				}
+				if !strings.Contains(logOutput, `"msg":"upstream_response"`) {
+					t.Error("Expected upstream_response message")
+				}
+			}
+		})
 	}
 }
 
-func TestHandler(t *testing.T) {
-	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("backend"))
-	}))
-	defer backend.Close()
-
-	backendURL, err := url.Parse(backend.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+func TestProxyHandler(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupBackend   func() (*httptest.Server, error)
+		expectedStatus int
+		expectedBody   string
+	}{
+		{
+			name: "successful proxy",
+			setupBackend: func() (*httptest.Server, error) {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("success"))
+				})), nil
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "success",
+		},
 	}
 
-	proxy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		proxyHandler := &ProxyHandler{
-			proxy: httputil.NewSingleHostReverseProxy(backendURL),
-		}
-		proxyHandler.Handler(w, r)
-	}))
-	defer proxy.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			backend, err := tt.setupBackend()
+			if err != nil {
+				t.Fatalf("Failed to setup backend: %v", err)
+			}
+			defer backend.Close()
 
-	proxyURL, err := url.Parse(proxy.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
+			backendURL, err := url.Parse(backend.URL)
+			if err != nil {
+				t.Fatalf("Failed to parse backend URL: %v", err)
+			}
 
-	resp, err := http.Get(proxyURL.String())
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	defer resp.Body.Close()
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-	if string(b) != "backend" {
-		t.Errorf("Expected body %s, got %s", "backend", string(b))
+			var buf bytes.Buffer
+			logger := slog.New(slog.NewJSONHandler(&buf, nil))
+			slog.SetDefault(logger)
+
+			handler := &ProxyHandler{
+				proxy: httputil.NewSingleHostReverseProxy(backendURL),
+			}
+
+			req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+			w := httptest.NewRecorder()
+
+			handler.Handler(w, req)
+
+			resp := w.Result()
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
+			}
+			if string(body) != tt.expectedBody {
+				t.Errorf("Expected body %q, got %q", tt.expectedBody, string(body))
+			}
+
+			logOutput := buf.String()
+			if !strings.Contains(logOutput, `"level":"INFO"`) {
+				t.Error("Expected INFO log level")
+			}
+			if !strings.Contains(logOutput, `"msg":"proxy_response"`) {
+				t.Error("Expected proxy_response message")
+			}
+		})
 	}
 }
 
 func TestNewServer(t *testing.T) {
-	backend1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("backend1"))
-	}))
-	defer backend1.Close()
-
-	backend2 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("backend2"))
-	}))
-	defer backend2.Close()
-
-	backend1URL, err := url.Parse(backend1.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	backend2URL, err := url.Parse(backend2.URL)
-	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
-	}
-
-	data := `
+	tests := []struct {
+		name          string
+		config        string
+		expectedError bool
+	}{
+		{
+			name: "valid configuration",
+			config: `
 proxy:
-  port: 8080
+  port: "8080"
   read_header_timeout: 2000
   shutdown_timeout: 3000
   static_files:
@@ -108,23 +183,92 @@ proxy:
       dir: testdata/public
 upstreams:
   - host_name: backend1.local
-    target: ` + backend1URL.String() + `
-  - host_name: backend2.local
-    target: ` + backend2URL.String() + `
-log_level: -4
-`
+    target: http://localhost:8081
+`,
+			expectedError: false,
+		},
+		{
+			name: "invalid target URL",
+			config: `
+proxy:
+  port: "8080"
+upstreams:
+  - host_name: backend1.local
+    target: :invalid:url
+`,
+			expectedError: true,
+		},
+	}
 
-	cfg := &Config{}
-	c, err := cfg.Load(strings.NewReader(data))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{}
+			c, err := cfg.Load(strings.NewReader(tt.config))
+			if err != nil {
+				t.Fatalf("Failed to load config: %v", err)
+			}
+
+			server, err := newServer(c)
+			if tt.expectedError {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+				if server == nil {
+					t.Error("Expected server but got nil")
+				} else {
+					server.Close()
+				}
+			}
+		})
+	}
+}
+
+func TestStaticFileHandler(t *testing.T) {
+	content := []byte("test content")
+	tmpDir := t.TempDir()
+	if err := os.WriteFile(tmpDir+"/test.txt", content, 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	cfg := &Config{
+		Proxy: Proxy{
+			StaticFiles: []StaticFile{
+				{
+					Path: "/static/",
+					Dir:  tmpDir,
+				},
+			},
+		},
+	}
+
+	server, err := newServer(cfg)
 	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+		t.Fatalf("Failed to create server: %v", err)
 	}
-	server, err := newServer(c)
+	defer server.Close()
+
+	ts := httptest.NewServer(server.Handler)
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/static/test.txt")
 	if err != nil {
-		t.Fatalf("Expected no error, got %v", err)
+		t.Fatalf("Failed to get static file: %v", err)
 	}
-	if server == nil {
-		t.Errorf("Expected server, got nil")
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatalf("Failed to read response body: %v", err)
 	}
-	server.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
+	}
+	if string(body) != string(content) {
+		t.Errorf("Expected body %q, got %q", string(content), string(body))
+	}
 }
