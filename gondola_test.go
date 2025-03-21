@@ -82,7 +82,7 @@ log_level: -4
 	}
 }
 
-func TestRun(t *testing.T) {
+func TestRunWithoutTLS(t *testing.T) {
 	backend1 := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("backend1"))
 	}))
@@ -132,18 +132,21 @@ log_level: -4
 		name    string
 		reqPath string
 		path    string
+		host    string
 		body    string
 		code    int
 	}{
 		{
 			name:    "request to backend1",
-			reqPath: "http://backend1.local:8080/",
+			reqPath: "http://localhost:8080/",
+			host:    "backend1.local",
 			body:    "backend1",
 			code:    http.StatusOK,
 		},
 		{
 			name:    "request to backend2",
-			reqPath: "http://backend2.local:8080/",
+			reqPath: "http://localhost:8080/",
+			host:    "backend2.local",
 			body:    "backend2",
 			code:    http.StatusOK,
 		},
@@ -158,6 +161,9 @@ log_level: -4
 			req, err := http.NewRequest(http.MethodGet, test.reqPath, nil)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if test.host != "" {
+				req.Host = test.host
 			}
 			res, err := http.DefaultClient.Do(req)
 			if err != nil {
@@ -231,18 +237,21 @@ log_level: -4
 		name    string
 		reqPath string
 		path    string
+		host    string
 		body    string
 		code    int
 	}{
 		{
 			name:    "request to backend1",
-			reqPath: "https://backend1.local:5443",
+			reqPath: "https://localhost:5443/",
+			host:    "backend1.local",
 			body:    "backend1",
 			code:    http.StatusOK,
 		},
 		{
 			name:    "request to backend2",
-			reqPath: "https://backend2.local:5443",
+			reqPath: "https://localhost:5443/",
+			host:    "backend2.local",
 			body:    "backend2",
 			code:    http.StatusOK,
 		},
@@ -257,6 +266,9 @@ log_level: -4
 			req, err := http.NewRequest(http.MethodGet, test.reqPath, nil)
 			if err != nil {
 				t.Fatal(err)
+			}
+			if test.host != "" {
+				req.Host = test.host
 			}
 			client := &http.Client{
 				Transport: &http.Transport{
