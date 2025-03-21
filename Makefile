@@ -14,13 +14,16 @@ install-tools: ## Install staticcheck.
 	go install golang.org/x/perf/cmd/benchstat@latest
 	go install golang.org/x/vuln/cmd/govulncheck@latest
 
-.PHONY: gofmt
-gofmt: ## Run gofmt.
-	test -z "$(gofmt -s -l . | tee /dev/stderr)"
-
 .PHONY: goimports
 goimports: ## Run goimports.
 	goimports -d $(find . -type f -name '*.go' -not -path "./vendor/*")
+
+.PHONY: lint
+lint: gofmt vet errcheck staticcheck gosec govulncheck ## Run all linters.
+
+.PHONY: gofmt
+gofmt: ## Run gofmt.
+	test -z "$(gofmt -s -l . | tee /dev/stderr)"
 
 .PHONY: vet
 vet: ## Run vet.
