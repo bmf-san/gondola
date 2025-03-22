@@ -1,76 +1,172 @@
-[English](https://github.com/bmf-san/gondola) [日本語](https://github.com/bmf-san/gondola/blob/master/README-ja.md)
+# Gondola
 
-# gondola
-[![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
-[![GitHub release](https://img.shields.io/github/release/bmf-san/gondola.svg)](https://github.com/bmf-san/gondola/releases)
-[![Go Report Card](https://goreportcard.com/badge/github.com/bmf-san/gondola)](https://goreportcard.com/report/github.com/bmf-san/gondola)
-[![codecov](https://codecov.io/gh/bmf-san/gondola/branch/main/graph/badge.svg?token=ZLOLQKUD39)](https://codecov.io/gh/bmf-san/gondola)
-[![GitHub license](https://img.shields.io/github/license/bmf-san/gondola)](https://github.com/bmf-san/gondola/blob/main/LICENSE)
-[![Go Reference](https://pkg.go.dev/badge/github.com/bmf-san/gondola.svg)](https://pkg.go.dev/github.com/bmf-san/gondola)
-[![Sourcegraph](https://sourcegraph.com/github.com/bmf-san/gondola/-/badge.svg)](https://sourcegraph.com/github.com/bmf-san/gondola?badge)
+A simple and flexible reverse proxy written in Go
 
-A golang reverse proxy.
+## Features
+- Lightweight and fast execution
+- Simple configuration file (YAML)
+- Static file hosting
+- Virtual host support
+- Detailed access logs (nginx-compatible)
+- Structured access logs (JSON)
+- TLS/SSL support
+- Trace ID support
+- Timeout control
 
-<img src="https://storage.googleapis.com/gopherizeme.appspot.com/gophers/22fd9b7a49eac4101fc9819578641c2e71706f6f.png" alt="gondola" title="gondola" width="250px">
+## Installation
 
-This log was created by [gopherize.me](https://gopherize.me/gopher/22fd9b7a49eac4101fc9819578641c2e71706f6f)
-
-# Table of contents
-- [gondola](#gondola)
-- [Table of contents](#table-of-contents)
-- [Features](#features)
-- [Install](#install)
-  - [Go](#go)
-  - [Binary](#binary)
-  - [Docker](#docker)
-- [Example](#example)
-- [Usage](#usage)
-- [Projects](#projects)
-- [ADR](#adr)
-- [Wiki](#wiki)
-- [Contribution](#contribution)
-- [Sponsor](#sponsor)
-- [License](#license)
-- [Stargazers](#stargazers)
-- [Forkers](#forkers)
-- [Author](#author)
-
-# Features
-- Virtual host
-  - You can set up multiple hosts on upstream servers.
-- Configuration file loader
-  - You can use configuration files in YAML format.
-- TLS
-  - You can use TLS by preparing a TLS certificate.
-- Serve static files
-  - You can serve static files.
-- Access log
-  - Outputs Proxy access logs and Upstream servers access logs.
-- Binary distribution
-  - Distributing cross-compiled binaries.
-
-# Install
-## Go
-```
-go get -u github.com/bmf-san/gondola
+### Go
+```bash
+go get github.com/bmf-san/gondola
 ```
 
-## Binary
-You can download the binary from the [release page](https://github.com/bmf-san/gondola/releases), and you can use it.
+### Binary
+Download the latest binary from the [Releases](https://github.com/bmf-san/gondola/releases) page.
 
-## Docker
-[bmfsan/gondola](https://hub.docker.com/r/bmfsan/gondola)
+### Docker
+```bash
+docker pull bmf-san/gondola
+docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmf-san/gondola
+```
 
-# Example
-See below for how to use gondola.
+## Usage
 
-- [_examples](https://github.com/bmf-san/gondola/tree/main/_examples)
+### Command Line Options
+```bash
+Usage: gondola [options]
 
-# Usage
-Run a binary with the option.
+Options:
+  -config string    Path to configuration file (default: /etc/gondola/config.yaml)
+  -version         Display version information
+  -help           Show help
+```
 
-```sh
+### Environment Variables
+The following environment variables can override command line options:
+
+- `GONDOLA_CONFIG`: Path to the configuration file
+- `GONDOLA_LOG_LEVEL`: Log level (debug, info, warn, error)
+
+### Signal Handling
+Gondola handles the following signals:
+
+- `SIGTERM`, `SIGINT`: Graceful shutdown
+- `SIGHUP`: Reload configuration file
+- `SIGUSR1`: Reopen access logs
+
+### Configuration File
+```yaml
+proxy:
+  port: "8080"
+  read_header_timeout: 2000  # milliseconds
+  shutdown_timeout: 3000     # milliseconds
+  log_level: "info"         # debug, info, warn, error
+  static_files:
+    - path: /public/
+      dir: /path/to/public
+
+upstreams:
+  - host_name: api.example.com
+    target: http://localhost:3000
+    read_timeout: 5000      # milliseconds
+    write_timeout: 5000     # milliseconds
+  - host_name: web.example.com
+    target: http://localhost:8000
+```
+
+### Startup Examples
+
+Basic startup:
+```bash
 gondola -config config.yaml
+```
+
+Start in debug mode:
+```bash
+GONDOLA_LOG_LEVEL=debug gondola -config config.yaml
+```
+
+Start with Docker:
+```bash
+docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml \
+          -p 8080:8080 \
+          bmf-san/gondola
+```
+
+Start with systemd:
+```ini
+[Unit]
+Description=Gondola Reverse Proxy
+After=network.target
+
+[Service]
+ExecStart=/usr/local/bin/gondola -config /etc/gondola/config.yaml
+Restart=always
+Environment=GONDOLA_LOG_LEVEL=info
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Access Logs
+
+Gondola outputs detailed access logs compatible with nginx.
+
+### Log Fields
+
+1. Client Information
+- `remote_addr`: Client IP address
+- `remote_port`: Client port number
+- `x_forwarded_for`: X-Forwarded-For header
+
+2. Request Information
+- `method`: HTTP method (GET, POST, etc.)
+- `request_uri`: Full request URI
+- `query_string`: Query parameters
+- `host`: Host header
+- `request_size`: Request size
+
+3. Response Information
+- `status`: HTTP status
+- `body_bytes_sent`: Response body size
+- `bytes_sent`: Total response size
+- `request_time`: Request processing time (seconds)
+
+4. Upstream Information
+- `upstream_addr`: Backend address
+- `upstream_status`: Backend status
+- `upstream_size`: Backend response size
+- `upstream_response_time`: Backend response time (seconds)
+
+5. Other Headers
+- `referer`: Referer header
+- `user_agent`: User-Agent header
+
+### Log Output Example
+```json
+{
+  "level": "INFO",
+  "msg": "access_log",
+  "remote_addr": "192.168.1.100",
+  "remote_port": "54321",
+  "x_forwarded_for": "",
+  "method": "GET",
+  "request_uri": "/api/users",
+  "query_string": "page=1",
+  "host": "api.example.com",
+  "request_size": 243,
+  "status": "OK",
+  "body_bytes_sent": 1532,
+  "bytes_sent": 1843,
+  "request_time": 0.153,
+  "upstream_addr": "localhost:3000",
+  "upstream_status": "200 OK",
+  "upstream_size": 1532,
+  "upstream_response_time": 0.142,
+  "referer": "https://example.com",
+  "user_agent": "Mozilla/5.0 ...",
+  "trace_id": "550e8400-e29b-41d4-a716-446655440000"
+}
 ```
 
 # Projects
@@ -79,30 +175,27 @@ gondola -config config.yaml
 # ADR
 - [ADR](https://github.com/bmf-san/gondola/discussions?discussions_q=is%3Aopen+label%3AADR)
 
-# Wiki
-- [wiki](https://github.com/bmf-san/gondola/wiki)
-
 # Contribution
-Issues and Pull Requests are always welcome.
+We welcome issues and pull requests at any time.
 
-We would be happy to receive your contributions.
+Feel free to contribute!
 
-Please review the following documents before making a contribution.
+Before contributing, please check the following documents:
 
 - [CODE_OF_CONDUCT](https://github.com/bmf-san/godra/blob/main/.github/CODE_OF_CONDUCT.md)
 - [CONTRIBUTING](https://github.com/bmf-san/godra/blob/main/.github/CONTRIBUTING.md)
 
-# Sponsor
-If you like it, I would be happy to have you sponsor it!
+# Sponsors
+If you like this project, consider sponsoring us!
 
 [Github Sponsors - bmf-san](https://github.com/sponsors/bmf-san)
 
-Or I would be happy to get a STAR.
+Alternatively, giving us a star would be appreciated!
 
-It motivates me to keep up with ongoing maintenance. :D
+It helps motivate us to continue maintaining this project. :D
 
 # License
-Based on the MIT License.
+This project is licensed under the MIT License.
 
 [LICENSE](https://github.com/bmf-san/gondola/blob/main/LICENSE)
 
@@ -121,3 +214,4 @@ Based on the MIT License.
   - [bmf-tech.com](http://bmf-tech.com)
 - Twitter
   - [bmf-san](https://twitter.com/bmf-san)
+
