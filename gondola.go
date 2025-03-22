@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -50,8 +51,8 @@ func NewServer(c *Config) (*http.Server, error) {
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		// Check if favicon exists in any of the static file directories
 		for _, sf := range c.Proxy.StaticFiles {
-			if _, err := os.Stat(sf.Dir + "/favicon.ico"); err == nil {
-				http.ServeFile(w, r, sf.Dir+"/favicon.ico")
+			if _, err := os.Stat(filepath.Join(sf.Dir, "favicon.ico")); err == nil {
+				http.ServeFile(w, r, filepath.Join(sf.Dir, "favicon.ico"))
 				return
 			}
 		}
