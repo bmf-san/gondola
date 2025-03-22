@@ -3,6 +3,7 @@ package gondola
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -41,8 +42,15 @@ func TestRoundTrip(t *testing.T) {
 		expectedError bool
 	}{
 		{
-			name:          "successful request",
-			transport:     http.DefaultTransport,
+			name: "successful request",
+			transport: &mockTransport{
+				response: &http.Response{
+					Status:        "200 OK",
+					StatusCode:    http.StatusOK,
+					Body:          io.NopCloser(bytes.NewBufferString("test")),
+					ContentLength: 4,
+				},
+			},
 			expectedError: false,
 		},
 		{
@@ -60,13 +68,14 @@ func TestRoundTrip(t *testing.T) {
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 			slog.SetDefault(logger)
 
-			lrt := &LogRoundTripper{transport: tt.transport}
+			lrt := NewLogRoundTripper(tt.transport)
 			dummy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte("dummy"))
 			}))
 			defer dummy.Close()
 
 			req := httptest.NewRequest(http.MethodGet, dummy.URL, nil)
+			req = SetInfo(req, &responseInfo{})
 			resp, err := lrt.RoundTrip(req)
 
 			if tt.expectedError && err == nil {
@@ -82,12 +91,15 @@ func TestRoundTrip(t *testing.T) {
 			}
 
 			if !tt.expectedError {
-				logOutput := buf.String()
-				if !strings.Contains(logOutput, `"level":"INFO"`) {
-					t.Error("Expected INFO log level")
+				info := GetInfo(req)
+				if info.upstreamStatus != "200 OK" {
+					t.Errorf("Expected upstream status '200 OK', got '%s'", info.upstreamStatus)
 				}
-				if !strings.Contains(logOutput, `"msg":"upstream_response"`) {
-					t.Error("Expected upstream_response message")
+				if info.upstreamSize != 4 {
+					t.Errorf("Expected upstream size 4, got %d", info.upstreamSize)
+				}
+				if info.upstreamTime <= 0 {
+					t.Error("Expected upstream time > 0")
 				}
 			}
 		})
@@ -97,12 +109,26 @@ func TestRoundTrip(t *testing.T) {
 func TestProxyHandler(t *testing.T) {
 	tests := []struct {
 		name           string
+		path           string
 		setupBackend   func() (*httptest.Server, error)
 		expectedStatus int
 		expectedBody   string
 	}{
 		{
-			name: "successful proxy",
+			name: "successful proxy with root path",
+			path: "/",
+			setupBackend: func() (*httptest.Server, error) {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					w.WriteHeader(http.StatusOK)
+					w.Write([]byte("success"))
+				})), nil
+			},
+			expectedStatus: http.StatusOK,
+			expectedBody:   "success",
+		},
+		{
+			name: "successful proxy with sub path",
+			path: "/foo",
 			setupBackend: func() (*httptest.Server, error) {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.WriteHeader(http.StatusOK)
@@ -131,14 +157,16 @@ func TestProxyHandler(t *testing.T) {
 			logger := slog.New(slog.NewJSONHandler(&buf, nil))
 			slog.SetDefault(logger)
 
-			handler := &ProxyHandler{
-				proxy: httputil.NewSingleHostReverseProxy(backendURL),
-			}
+			proxy := httputil.NewSingleHostReverseProxy(backendURL)
+			proxy.Transport = NewLogRoundTripper(http.DefaultTransport)
+			handler := NewProxyHandler(proxy, slog.New(slog.NewJSONHandler(&buf, nil)))
 
-			req := httptest.NewRequest(http.MethodGet, "http://example.com", nil)
+			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://example.com%s", tt.path), nil)
+			req.RemoteAddr = "192.0.2.1:12345" // Testing IP and port
+			req = SetInfo(req, &responseInfo{})
 			w := httptest.NewRecorder()
 
-			handler.Handler(w, req)
+			handler.ServeHTTP(w, req)
 
 			resp := w.Result()
 			body, err := io.ReadAll(resp.Body)
@@ -155,11 +183,77 @@ func TestProxyHandler(t *testing.T) {
 			}
 
 			logOutput := buf.String()
+			// Check basic log structure
 			if !strings.Contains(logOutput, `"level":"INFO"`) {
 				t.Error("Expected INFO log level")
 			}
-			if !strings.Contains(logOutput, `"msg":"proxy_response"`) {
-				t.Error("Expected proxy_response message")
+			if !strings.Contains(logOutput, `"msg":"access_log"`) {
+				t.Error("Expected access_log message")
+			}
+
+			// Check client info
+			if !strings.Contains(logOutput, `"remote_addr":"192.0.2.1"`) {
+				t.Error("Expected remote_addr 192.0.2.1")
+			}
+			if !strings.Contains(logOutput, `"remote_port":"12345"`) {
+				t.Error("Expected remote_port 12345")
+			}
+			if !strings.Contains(logOutput, `"x_forwarded_for":""`) {
+				t.Error("Expected empty x_forwarded_for")
+			}
+
+			// Check request info
+			if !strings.Contains(logOutput, `"method":"GET"`) {
+				t.Error("Expected method GET")
+			}
+			fullURI := fmt.Sprintf("http://example.com%s", tt.path)
+			if !strings.Contains(logOutput, fmt.Sprintf(`"request_uri":"%s"`, fullURI)) {
+				t.Errorf("Expected request_uri %q", fullURI)
+			}
+			if !strings.Contains(logOutput, `"query_string":""`) {
+				t.Error("Expected empty query_string")
+			}
+			if !strings.Contains(logOutput, `"host":"example.com"`) {
+				t.Error("Expected host example.com")
+			}
+			if !strings.Contains(logOutput, `"request_size":0`) {
+				t.Error("Expected request_size 0")
+			}
+
+			// Check response info
+			if !strings.Contains(logOutput, `"status":"OK"`) {
+				t.Error("Expected status OK")
+			}
+			if !strings.Contains(logOutput, `"body_bytes_sent":7`) {
+				t.Error("Expected body_bytes_sent 7")
+			}
+			if !strings.Contains(logOutput, `"bytes_sent":7`) {
+				t.Error("Expected bytes_sent 7")
+			}
+			if !strings.Contains(logOutput, `"request_time":`) {
+				t.Error("Expected request_time field")
+			}
+
+			// Check upstream info
+			if !strings.Contains(logOutput, `"upstream_addr":`) {
+				t.Error("Expected upstream_addr field")
+			}
+			if !strings.Contains(logOutput, `"upstream_status":"200 OK"`) {
+				t.Error("Expected upstream_status 200 OK")
+			}
+			if !strings.Contains(logOutput, `"upstream_size":7`) {
+				t.Error("Expected upstream_size 7")
+			}
+			if !strings.Contains(logOutput, `"upstream_response_time":`) {
+				t.Error("Expected upstream_response_time field")
+			}
+
+			// Check header info
+			if !strings.Contains(logOutput, `"referer":""`) {
+				t.Error("Expected empty referer")
+			}
+			if !strings.Contains(logOutput, `"user_agent":""`) {
+				t.Error("Expected empty user_agent")
 			}
 		})
 	}
@@ -208,7 +302,7 @@ upstreams:
 				t.Fatalf("Failed to load config: %v", err)
 			}
 
-			server, err := newServer(c)
+			server, err := NewServer(c)
 			if tt.expectedError {
 				if err == nil {
 					t.Error("Expected error but got none")
@@ -245,7 +339,7 @@ func TestStaticFileHandler(t *testing.T) {
 		},
 	}
 
-	server, err := newServer(cfg)
+	server, err := NewServer(cfg)
 	if err != nil {
 		t.Fatalf("Failed to create server: %v", err)
 	}
