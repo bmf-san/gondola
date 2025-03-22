@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"sync"
 	"time"
 )
 
@@ -115,6 +116,84 @@ type ProxyHandler struct {
 	logger *slog.Logger
 }
 
+// Server represents a proxy server instance
+type Server struct {
+	mu       sync.RWMutex
+	server   *http.Server
+	handler  http.Handler
+	logger   *slog.Logger
+	shutdown chan struct{}
+}
+
+// NewProxyServer creates a new proxy server instance with graceful shutdown support
+func NewProxyServer(handler http.Handler, logger *slog.Logger) *Server {
+	return &Server{
+		handler:  handler,
+		logger:   logger,
+		shutdown: make(chan struct{}),
+	}
+}
+
+// ListenAndServe starts the server
+func (s *Server) ListenAndServe(addr string) error {
+	s.mu.Lock()
+	s.server = &http.Server{
+		Addr:              addr,
+		Handler:           s.handler,
+		ReadHeaderTimeout: 10 * time.Second, // Protect against Slowloris attacks
+	}
+	s.mu.Unlock()
+	return s.server.ListenAndServe()
+}
+
+// ListenAndServeTLS starts the server with TLS
+func (s *Server) ListenAndServeTLS(addr, certFile, keyFile string) error {
+	s.mu.Lock()
+	s.server = &http.Server{
+		Addr:              addr,
+		Handler:           s.handler,
+		ReadHeaderTimeout: 10 * time.Second, // Protect against Slowloris attacks
+	}
+	s.mu.Unlock()
+	return s.server.ListenAndServeTLS(certFile, keyFile)
+}
+
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown(ctx context.Context) error {
+	s.mu.RLock()
+	srv := s.server
+	s.mu.RUnlock()
+
+	if srv == nil {
+		return fmt.Errorf("server not started")
+	}
+
+	// Log the start of shutdown
+	s.logger.InfoContext(ctx, "starting graceful shutdown")
+
+	// Close the shutdown channel
+	close(s.shutdown)
+
+	// Execute graceful shutdown
+	err := srv.Shutdown(ctx)
+	if err != nil {
+		return fmt.Errorf("error during shutdown: %w", err)
+	}
+
+	s.logger.InfoContext(ctx, "server shutdown completed")
+	return nil
+}
+
+// IsShutdown returns true if the server is shutting down
+func (s *Server) IsShutdown() bool {
+	select {
+	case <-s.shutdown:
+		return true
+	default:
+		return false
+	}
+}
+
 // NewProxyHandler creates a new ProxyHandler.
 func NewProxyHandler(proxy *httputil.ReverseProxy, logger *slog.Logger) *ProxyHandler {
 	return &ProxyHandler{
@@ -158,7 +237,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	info.status = http.StatusText(rw.status)
 	info.bodyBytesSent = rw.size
-	info.totalBytesSent = rw.size // ヘッダーサイズは現時点では計算していない
+	info.totalBytesSent = rw.size // header size is not calculated at this time
 	info.responseTime = time.Since(start).Seconds()
 
 	h.logger.InfoContext(ctx, "access_log",
