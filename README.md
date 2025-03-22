@@ -7,6 +7,7 @@ A simple and flexible reverse proxy written in Go
 - Simple configuration file (YAML)
 - Static file hosting
 - Virtual host support
+- Graceful shutdown
 - Detailed access logs (nginx-compatible)
 - Structured access logs (JSON)
 - TLS/SSL support
