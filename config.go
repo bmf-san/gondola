@@ -21,8 +21,11 @@ type Proxy struct {
 
 // StaticFile is a struct that represents a static file configuration.
 type StaticFile struct {
-	Path string `yaml:"path"`
-	Dir  string `yaml:"dir"`
+	Path        string         `yaml:"path"`
+	Dir         string         `yaml:"dir"`
+	Fallback    string         `yaml:"fallback,omitempty"`
+	DefaultFile string         `yaml:"default_file,omitempty"`
+	ErrorPages  map[int]string `yaml:"error_pages,omitempty"`
 }
 
 // IsEnableTLS returns true if the proxy server is configured to use TLS.

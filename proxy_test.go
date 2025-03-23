@@ -162,7 +162,7 @@ func TestProxyHandler(t *testing.T) {
 
 			proxy := httputil.NewSingleHostReverseProxy(backendURL)
 			proxy.Transport = NewLogRoundTripper(http.DefaultTransport)
-			handler := NewProxyHandler(proxy, slog.New(slog.NewJSONHandler(&buf, nil)))
+			handler := NewProxyHandler(proxy, slog.New(slog.NewJSONHandler(&buf, nil)), []StaticFile{})
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("http://example.com%s", tt.path), nil)
 			req.RemoteAddr = "192.0.2.1:12345" // Testing IP and port
@@ -328,12 +328,9 @@ func TestGracefulShutdown(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(2) // Wait for server startup and shutdown completion
 
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(100 * time.Millisecond) // Simulated processing time
-		w.WriteHeader(http.StatusOK)
-	})
-
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	proxyURL := &url.URL{Scheme: "http", Host: "localhost"}
+	handler := NewProxyHandler(httputil.NewSingleHostReverseProxy(proxyURL), logger, []StaticFile{})
 	server := NewProxyServer(handler, logger)
 
 	// Channel to signal server readiness
@@ -406,8 +403,11 @@ func TestStaticFileHandler(t *testing.T) {
 		Proxy: Proxy{
 			StaticFiles: []StaticFile{
 				{
-					Path: "/static/",
-					Dir:  tmpDir,
+					Path:        "/static/",
+					Dir:         tmpDir,
+					DefaultFile: "index.html",
+					Fallback:    "404.html",
+					ErrorPages:  map[int]string{404: "404.html", 500: "500.html"},
 				},
 			},
 		},

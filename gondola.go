@@ -73,7 +73,7 @@ func NewServer(c *Config) (*http.Server, error) {
 			req.URL.Scheme = target.Scheme
 			req.URL.Host = target.Host
 		}
-		handler := NewProxyHandler(proxy, logger.Logger)
+		handler := NewProxyHandler(proxy, logger.Logger, c.Proxy.StaticFiles)
 		pattern := upstream.HostName + "/"
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 			if r.Host == upstream.HostName {

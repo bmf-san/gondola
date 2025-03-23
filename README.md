@@ -5,6 +5,7 @@ A simple and flexible reverse proxy written in Go
 ## Features
 - Lightweight and fast execution
 - Simple configuration file (YAML)
+- Fallback support
 - Static file hosting
 - Virtual host support
 - Graceful shutdown

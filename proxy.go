@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"strings"
 	"sync"
 	"time"
 )
@@ -112,8 +113,84 @@ func (lrt *LogRoundTripper) RoundTrip(r *http.Request) (*http.Response, error) {
 
 // ProxyHandler is a http.Handler that proxies the request.
 type ProxyHandler struct {
-	proxy  *httputil.ReverseProxy
-	logger *slog.Logger
+	proxy        *httputil.ReverseProxy
+	logger       *slog.Logger
+	errorHandler *ErrorHandler
+	staticFiles  map[string]StaticFile
+	fs           http.FileSystem
+}
+
+// handleStaticFile handles requests for static files
+func (h *ProxyHandler) handleStaticFile(w http.ResponseWriter, r *http.Request, sf StaticFile) bool {
+	if h.fs == nil {
+		return false
+	}
+
+	path := r.URL.Path
+	if path == "/" && sf.DefaultFile != "" {
+		path = "/" + sf.DefaultFile
+	}
+
+	f, err := h.fs.Open(path)
+	if err != nil {
+		// If the file is not found, try the default file
+		if sf.DefaultFile != "" {
+			if f2, err := h.fs.Open(path + "/" + sf.DefaultFile); err == nil {
+				f = f2
+			} else if sf.Fallback != "" {
+				// Try the fallback file
+				if f3, err := h.fs.Open(sf.Fallback); err == nil {
+					f = f3
+				} else {
+					h.errorHandler.ServeError(w, r, http.StatusNotFound)
+					return true
+				}
+			} else {
+				h.errorHandler.ServeError(w, r, http.StatusNotFound)
+				return true
+			}
+		} else if sf.Fallback != "" {
+			// Try the fallback file
+			if f2, err := h.fs.Open(sf.Fallback); err == nil {
+				f = f2
+			} else {
+				h.errorHandler.ServeError(w, r, http.StatusNotFound)
+				return true
+			}
+		} else {
+			h.errorHandler.ServeError(w, r, http.StatusNotFound)
+			return true
+		}
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		h.errorHandler.ServeError(w, r, http.StatusInternalServerError)
+		return true
+	}
+
+	if fi.IsDir() {
+		if sf.DefaultFile != "" {
+			if f2, err := h.fs.Open(path + "/" + sf.DefaultFile); err == nil {
+				f = f2
+				fi, err = f2.Stat()
+				if err != nil {
+					h.errorHandler.ServeError(w, r, http.StatusInternalServerError)
+					return true
+				}
+			} else {
+				h.errorHandler.ServeError(w, r, http.StatusNotFound)
+				return true
+			}
+		} else {
+			h.errorHandler.ServeError(w, r, http.StatusNotFound)
+			return true
+		}
+	}
+
+	http.ServeContent(w, r, path, fi.ModTime(), f)
+	return true
 }
 
 // Server represents a proxy server instance
@@ -140,7 +217,7 @@ func (s *Server) ListenAndServe(addr string) error {
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.handler,
-		ReadHeaderTimeout: 10 * time.Second, // Protect against Slowloris attacks
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	s.mu.Unlock()
 	return s.server.ListenAndServe()
@@ -152,7 +229,7 @@ func (s *Server) ListenAndServeTLS(addr, certFile, keyFile string) error {
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.handler,
-		ReadHeaderTimeout: 10 * time.Second, // Protect against Slowloris attacks
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	s.mu.Unlock()
 	return s.server.ListenAndServeTLS(certFile, keyFile)
@@ -168,13 +245,10 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("server not started")
 	}
 
-	// Log the start of shutdown
 	s.logger.InfoContext(ctx, "starting graceful shutdown")
 
-	// Close the shutdown channel
 	close(s.shutdown)
 
-	// Execute graceful shutdown
 	err := srv.Shutdown(ctx)
 	if err != nil {
 		return fmt.Errorf("error during shutdown: %w", err)
@@ -195,20 +269,46 @@ func (s *Server) IsShutdown() bool {
 }
 
 // NewProxyHandler creates a new ProxyHandler.
-func NewProxyHandler(proxy *httputil.ReverseProxy, logger *slog.Logger) *ProxyHandler {
-	return &ProxyHandler{
-		proxy:  proxy,
-		logger: logger,
+func NewProxyHandler(proxy *httputil.ReverseProxy, logger *slog.Logger, staticFiles []StaticFile) *ProxyHandler {
+	filesMap := make(map[string]StaticFile)
+	for _, sf := range staticFiles {
+		filesMap[sf.Path] = sf
 	}
+
+	h := &ProxyHandler{
+		proxy:       proxy,
+		logger:      logger,
+		staticFiles: filesMap,
+	}
+
+	if len(staticFiles) > 0 {
+		errorPages := make(map[int]string)
+		for _, sf := range staticFiles {
+			if sf.ErrorPages != nil {
+				for code, page := range sf.ErrorPages {
+					errorPages[code] = page
+				}
+			}
+		}
+		h.errorHandler = NewErrorHandler(errorPages, http.Dir("."))
+	}
+
+	return h
 }
 
 // ServeHTTP implements the http.Handler interface.
 func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	for _, sf := range h.staticFiles {
+		if strings.HasPrefix(r.URL.Path, sf.Path) {
+			if h.handleStaticFile(w, r, sf) {
+				return
+			}
+		}
+	}
 	start := time.Now()
 	ctx := WithTraceID(r.Context())
 	rw := &responseWriter{ResponseWriter: w}
 
-	// Create responseInfo and collect request information
 	host, port := "unknown", "0"
 	if r.RemoteAddr != "" {
 		if h, p, err := net.SplitHostPort(r.RemoteAddr); err == nil {
