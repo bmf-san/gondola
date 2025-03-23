@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -396,47 +395,80 @@ func TestGracefulShutdown(t *testing.T) {
 }
 
 func TestStaticFileHandler(t *testing.T) {
-	content := []byte("test content")
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(tmpDir+"/test.txt", content, 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
-	cfg := &Config{
-		Proxy: Proxy{
-			StaticFiles: []StaticFile{
-				{
-					Path: "/static/",
-					Dir:  tmpDir,
-				},
-			},
+	tests := []struct {
+		name         string
+		requestPath  string
+		fallbackPath string
+		expectedCode int
+		expectedBody string
+	}{
+		{
+			name:         "existing file",
+			requestPath:  "/static/test.txt",
+			expectedCode: http.StatusOK,
+			expectedBody: "test content\n",
+		},
+		{
+			name:         "existing file in subdir",
+			requestPath:  "/static/subdir/test.txt",
+			expectedCode: http.StatusOK,
+			expectedBody: "subdir content\n",
+		},
+		{
+			name:         "non-existent file fallback to custom file",
+			requestPath:  "/static/nonexistent.txt",
+			fallbackPath: "404.html",
+			expectedCode: http.StatusOK,
+			expectedBody: "custom 404 content\n",
+		},
+		{
+			name:         "directory request fallback to index.html",
+			requestPath:  "/static/subdir/",
+			expectedCode: http.StatusOK,
+			expectedBody: "index content\n",
 		},
 	}
 
-	server, err := NewServer(cfg)
-	if err != nil {
-		t.Fatalf("Failed to create server: %v", err)
-	}
-	defer server.Close()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				Proxy: Proxy{
+					StaticFiles: []StaticFile{
+						{
+							Path:         "/static/",
+							Dir:          "testdata/static",
+							FallbackPath: tt.fallbackPath,
+						},
+					},
+				},
+			}
 
-	ts := httptest.NewServer(server.Handler)
-	defer ts.Close()
+			server, err := NewServer(cfg)
+			if err != nil {
+				t.Fatalf("Failed to create server: %v", err)
+			}
+			defer server.Close()
 
-	resp, err := http.Get(ts.URL + "/static/test.txt")
-	if err != nil {
-		t.Fatalf("Failed to get static file: %v", err)
-	}
-	defer resp.Body.Close()
+			ts := httptest.NewServer(server.Handler)
+			defer ts.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Failed to read response body: %v", err)
-	}
+			resp, err := http.Get(ts.URL + tt.requestPath)
+			if err != nil {
+				t.Fatalf("Failed to get static file: %v", err)
+			}
+			defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
-	}
-	if string(body) != string(content) {
-		t.Errorf("Expected body %q, got %q", string(content), string(body))
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+			}
+
+			if resp.StatusCode != tt.expectedCode {
+				t.Errorf("Expected status %d, got %d", tt.expectedCode, resp.StatusCode)
+			}
+			if string(body) != tt.expectedBody {
+				t.Errorf("Expected body %q, got %q", tt.expectedBody, string(body))
+			}
+		})
 	}
 }
