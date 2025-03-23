@@ -59,6 +59,7 @@ proxy:
   static_files:
     - path: /public/
       dir: testdata/public
+      fallback_path: custom_404.html
 upstreams:
   - host_name: backend1.local
     target: http://backend1:8081
@@ -76,8 +77,9 @@ log_level: -4
 			TLSKeyPath:        "/path/to/key",
 			StaticFiles: []StaticFile{
 				{
-					Path: "/public/",
-					Dir:  "testdata/public",
+					Path:         "/public/",
+					Dir:          "testdata/public",
+					FallbackPath: "custom_404.html",
 				},
 			},
 		},
