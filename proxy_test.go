@@ -11,7 +11,6 @@ import (
 	"net/http/httptest"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -393,20 +392,14 @@ func TestGracefulShutdown(t *testing.T) {
 }
 
 func TestStaticFileHandler(t *testing.T) {
-	content := []byte("test content")
-	tmpDir := t.TempDir()
-	if err := os.WriteFile(tmpDir+"/test.txt", content, 0644); err != nil {
-		t.Fatalf("Failed to create test file: %v", err)
-	}
-
 	cfg := &Config{
 		Proxy: Proxy{
 			StaticFiles: []StaticFile{
 				{
 					Path:        "/static/",
-					Dir:         tmpDir,
+					Dir:         "testdata/public",
 					DefaultFile: "index.html",
-					Fallback:    "404.html",
+					Fallback:    "fallback.html",
 					ErrorPages:  map[int]string{404: "404.html", 500: "500.html"},
 				},
 			},
@@ -422,21 +415,130 @@ func TestStaticFileHandler(t *testing.T) {
 	ts := httptest.NewServer(server.Handler)
 	defer ts.Close()
 
-	resp, err := http.Get(ts.URL + "/static/test.txt")
-	if err != nil {
-		t.Fatalf("Failed to get static file: %v", err)
+	tests := []struct {
+		name           string
+		path           string
+		expectedStatus int
+		expectedBody   []byte
+	}{
+		{
+			name:           "existing file",
+			path:           "/static/test.txt",
+			expectedStatus: http.StatusOK,
+			expectedBody:   []byte("test content for static file"),
+		},
+		{
+			name:           "non-existent file fallback to fallback.html",
+			path:           "/static/not-exist.txt",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   []byte("test content for static file"),
+		},
+		{
+			name:           "directory without index.html fallback to 404.html",
+			path:           "/static/empty/",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   []byte("test content for static file"),
+		},
 	}
-	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatalf("Failed to read response body: %v", err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			if err != nil {
+				t.Fatalf("Failed to get file: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+			}
+			body = bytes.TrimSpace(body)
+
+			t.Logf("[%s] Got status: %d, body: %q", tt.name, resp.StatusCode, string(body))
+
+			if resp.StatusCode != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
+			}
+			if !bytes.Equal(body, tt.expectedBody) {
+				t.Errorf("Expected body %q, got %q", string(tt.expectedBody), string(body))
+			}
+		})
+	}
+}
+
+func TestStaticFileHandlerWithMissingFallback(t *testing.T) {
+	cfg := &Config{
+		Proxy: Proxy{
+			StaticFiles: []StaticFile{
+				{
+					Path:        "/static/",
+					Dir:         "testdata/public",
+					DefaultFile: "index.html",
+					Fallback:    "missing.html",
+					ErrorPages:  map[int]string{404: "404.html"},
+				},
+			},
+		},
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("Expected status %d, got %d", http.StatusOK, resp.StatusCode)
+	server, err := NewServer(cfg)
+	if err != nil {
+		t.Fatalf("Failed to create server: %v", err)
 	}
-	if string(body) != string(content) {
-		t.Errorf("Expected body %q, got %q", string(content), string(body))
+	defer server.Close()
+
+	ts := httptest.NewServer(server.Handler)
+	defer ts.Close()
+
+	tests := []struct {
+		name           string
+		path           string
+		expectedStatus int
+		expectedBody   []byte
+	}{
+		{
+			name:           "existing file should work",
+			path:           "/static/test.txt",
+			expectedStatus: http.StatusOK,
+			expectedBody:   []byte("test content for static file"),
+		},
+		{
+			name:           "non-existent file with missing fallback",
+			path:           "/static/not-exist.txt",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   []byte("404 Not Found - Custom Error Page\n"),
+		},
+		{
+			name:           "directory without index and missing fallback",
+			path:           "/static/empty/",
+			expectedStatus: http.StatusNotFound,
+			expectedBody:   []byte("404 Not Found - Custom Error Page\n"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			resp, err := http.Get(ts.URL + tt.path)
+			if err != nil {
+				t.Fatalf("Failed to get file: %v", err)
+			}
+			defer resp.Body.Close()
+
+			body, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatalf("Failed to read response body: %v", err)
+			}
+			body = bytes.TrimSpace(body)
+
+			t.Logf("[%s] Got status: %d, body: %q", tt.name, resp.StatusCode, string(body))
+
+			if resp.StatusCode != tt.expectedStatus {
+				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)
+			}
+			if !bytes.Equal(body, tt.expectedBody) {
+				t.Errorf("Expected body %q, got %q", string(tt.expectedBody), string(body))
+			}
+		})
 	}
 }

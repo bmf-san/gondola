@@ -121,45 +121,73 @@ type ProxyHandler struct {
 }
 
 // handleStaticFile handles requests for static files
+func (h *ProxyHandler) tryFallback(w http.ResponseWriter, r *http.Request, sf StaticFile) (*http.File, bool) {
+	if sf.Fallback == "" {
+		return nil, false
+	}
+
+	f, err := h.fs.Open(sf.Fallback)
+	if err != nil {
+		h.errorHandler.ServeError(w, r, http.StatusNotFound)
+		return nil, true
+	}
+
+	w.WriteHeader(http.StatusNotFound)
+	return &f, true
+}
+
 func (h *ProxyHandler) handleStaticFile(w http.ResponseWriter, r *http.Request, sf StaticFile) bool {
 	if h.fs == nil {
 		return false
 	}
 
-	path := r.URL.Path
-	if path == "/" && sf.DefaultFile != "" {
-		path = "/" + sf.DefaultFile
+	// ResponseWriterをラップ
+	rw := &responseWriter{ResponseWriter: w}
+	w = rw
+
+	path := strings.TrimPrefix(r.URL.Path, sf.Path)
+	if path == "" || path == "/" {
+		if sf.DefaultFile != "" {
+			path = sf.DefaultFile
+		} else {
+			path = "/"
+		}
 	}
+
+	// パスが/で始まっている場合は除去
+	path = strings.TrimPrefix(path, "/")
 
 	f, err := h.fs.Open(path)
 	if err != nil {
-		// If the file is not found, try the default file
+		// デフォルトファイルを試す
 		if sf.DefaultFile != "" {
 			if f2, err := h.fs.Open(path + "/" + sf.DefaultFile); err == nil {
 				f = f2
-			} else if sf.Fallback != "" {
-				// Try the fallback file
-				if f3, err := h.fs.Open(sf.Fallback); err == nil {
-					f = f3
+			} else {
+				// フォールバックを試す
+				if fallback, handled := h.tryFallback(w, r, sf); handled {
+					if fallback != nil {
+						f = *fallback
+					} else {
+						return true
+					}
 				} else {
 					h.errorHandler.ServeError(w, r, http.StatusNotFound)
+					return true
+				}
+			}
+		} else {
+			// フォールバックを試す
+			if fallback, handled := h.tryFallback(w, r, sf); handled {
+				if fallback != nil {
+					f = *fallback
+				} else {
 					return true
 				}
 			} else {
 				h.errorHandler.ServeError(w, r, http.StatusNotFound)
 				return true
 			}
-		} else if sf.Fallback != "" {
-			// Try the fallback file
-			if f2, err := h.fs.Open(sf.Fallback); err == nil {
-				f = f2
-			} else {
-				h.errorHandler.ServeError(w, r, http.StatusNotFound)
-				return true
-			}
-		} else {
-			h.errorHandler.ServeError(w, r, http.StatusNotFound)
-			return true
 		}
 	}
 	defer f.Close()
@@ -171,6 +199,7 @@ func (h *ProxyHandler) handleStaticFile(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if fi.IsDir() {
+		// デフォルトファイルを試す
 		if sf.DefaultFile != "" {
 			if f2, err := h.fs.Open(path + "/" + sf.DefaultFile); err == nil {
 				f = f2
@@ -180,13 +209,51 @@ func (h *ProxyHandler) handleStaticFile(w http.ResponseWriter, r *http.Request, 
 					return true
 				}
 			} else {
+				// フォールバックを試す
+				if fallback, handled := h.tryFallback(w, r, sf); handled {
+					if fallback != nil {
+						f = *fallback
+						fi, err = f.Stat()
+						if err != nil {
+							h.errorHandler.ServeError(w, r, http.StatusInternalServerError)
+							return true
+						}
+					} else {
+						return true
+					}
+				} else {
+					h.errorHandler.ServeError(w, r, http.StatusNotFound)
+					return true
+				}
+			}
+		} else {
+			// フォールバックを試す
+			if fallback, handled := h.tryFallback(w, r, sf); handled {
+				if fallback != nil {
+					f = *fallback
+					fi, err = f.Stat()
+					if err != nil {
+						h.errorHandler.ServeError(w, r, http.StatusInternalServerError)
+						return true
+					}
+				} else {
+					return true
+				}
+			} else {
 				h.errorHandler.ServeError(w, r, http.StatusNotFound)
 				return true
 			}
-		} else {
-			h.errorHandler.ServeError(w, r, http.StatusNotFound)
-			return true
 		}
+	}
+
+	// ステータスコードがまだ設定されていない場合はOKを設定（フォールバック以外）
+	if rw.status == 0 {
+		w.WriteHeader(http.StatusOK)
+	}
+
+	// パスがフォールバックの場合、元のパスを使用
+	if path == sf.Fallback {
+		path = r.URL.Path
 	}
 
 	http.ServeContent(w, r, path, fi.ModTime(), f)
@@ -275,10 +342,16 @@ func NewProxyHandler(proxy *httputil.ReverseProxy, logger *slog.Logger, staticFi
 		filesMap[sf.Path] = sf
 	}
 
+	var fs http.FileSystem
+	if len(staticFiles) > 0 {
+		fs = http.Dir(staticFiles[0].Dir)
+	}
+
 	h := &ProxyHandler{
 		proxy:       proxy,
 		logger:      logger,
 		staticFiles: filesMap,
+		fs:          fs,
 	}
 
 	if len(staticFiles) > 0 {
@@ -290,7 +363,7 @@ func NewProxyHandler(proxy *httputil.ReverseProxy, logger *slog.Logger, staticFi
 				}
 			}
 		}
-		h.errorHandler = NewErrorHandler(errorPages, http.Dir("."))
+		h.errorHandler = NewErrorHandler(errorPages, fs)
 	}
 
 	return h
