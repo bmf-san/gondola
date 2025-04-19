@@ -194,8 +194,8 @@ Feel free to contribute!
 
 Before contributing, please check the following documents:
 
-- [CODE_OF_CONDUCT](https://github.com/bmf-san/godra/blob/main/.github/CODE_OF_CONDUCT.md)
-- [CONTRIBUTING](https://github.com/bmf-san/godra/blob/main/.github/CONTRIBUTING.md)
+- [CODE_OF_CONDUCT](https://github.com/bmf-san/gondra/blob/main/.github/CODE_OF_CONDUCT.md)
+- [CONTRIBUTING](https://github.com/bmf-san/gondra/blob/main/.github/CONTRIBUTING.md)
 
 # Sponsors
 If you like this project, consider sponsoring us!
