@@ -1,22 +1,29 @@
 name: Test
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.24.1' ]
+        go-version: [ 'stable' ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
         with:
           fetch-depth: 0
       - name: Add hosts to /etc/hosts
         # For testing purposes, we need to add the hosts to /etc/hosts
         run: (echo "127.0.0.1 backend1.local" && echo "127.0.0.1 backend2.local") | sudo tee -a /etc/hosts
       - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:
           go-version: ${{ matrix.go-version }}
       - name: Run test
@@ -24,7 +31,9 @@ jobs:
       - name: Run coverage
         run: make test-cover OUT=coverage.out
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.5.0
+        # Skip on fork PRs where the upload token is unavailable.
+        if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           fail_ci_if_error: true
           file: ./coverage.out

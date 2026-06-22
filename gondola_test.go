@@ -27,7 +27,7 @@ upstreams:
     target: http://backend1:8081
   - host_name: backend2.local
     target: http://backend2:8082
-log_level: -4
+log_level: debug
 `
 	gondola, err := NewGondola(strings.NewReader(data))
 	if err != nil {
@@ -70,7 +70,7 @@ upstreams:
     target: "://"
   - host_name: backend2.local
     target: "://"
-log_level: -4
+log_level: debug
 `
 	_, err := NewGondola(strings.NewReader(data))
 	if err == nil {
@@ -117,7 +117,7 @@ upstreams:
     target: ` + backend1URL.String() + `
   - host_name: backend2.local
     target: ` + backend2URL.String() + `
-log_level: -4
+log_level: debug
 `
 	gondola, err := NewGondola(strings.NewReader(data))
 	if err != nil {
@@ -222,7 +222,7 @@ upstreams:
     target: ` + backend1URL.String() + `
   - host_name: backend2.local
     target: ` + backend2URL.String() + `
-log_level: -4
+log_level: debug
 `
 	gondola, err := NewGondola(strings.NewReader(data))
 	if err != nil {

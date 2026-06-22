@@ -3,10 +3,12 @@ package gondola
 import (
 	"bytes"
 	"errors"
+	"log/slog"
 	"reflect"
 	"strings"
 	"testing"
 	"testing/iotest"
+	"time"
 )
 
 func TestIsEnableTLS(t *testing.T) {
@@ -65,7 +67,7 @@ upstreams:
     target: http://backend1:8081
   - host_name: backend2.local
     target: http://backend2:8082
-log_level: -4
+log_level: debug
 `
 
 	expected := &Config{
@@ -93,7 +95,7 @@ log_level: -4
 				Target:   "http://backend2:8082",
 			},
 		},
-		4,
+		"debug",
 	}
 
 	actual := &Config{}
@@ -128,5 +130,35 @@ func TestLoadUnmarshalError(t *testing.T) {
 	_, err := c.Load(reader)
 	if err == nil {
 		t.Fatalf("Expected error, got nil")
+	}
+}
+
+func TestParseLevel(t *testing.T) {
+	cases := map[string]slog.Level{
+		"debug":   slog.LevelDebug,
+		"DEBUG":   slog.LevelDebug,
+		"info":    slog.LevelInfo,
+		"warn":    slog.LevelWarn,
+		"warning": slog.LevelWarn,
+		"error":   slog.LevelError,
+		"":        slog.LevelInfo,
+		"unknown": slog.LevelInfo,
+	}
+	for in, want := range cases {
+		if got := ParseLevel(in); got != want {
+			t.Errorf("ParseLevel(%q) = %v, want %v", in, got, want)
+		}
+	}
+}
+
+func TestMsToDuration(t *testing.T) {
+	if got := msToDuration(0); got != 0 {
+		t.Errorf("msToDuration(0) = %v, want 0", got)
+	}
+	if got := msToDuration(-5); got != 0 {
+		t.Errorf("msToDuration(-5) = %v, want 0", got)
+	}
+	if got := msToDuration(1500); got != 1500*time.Millisecond {
+		t.Errorf("msToDuration(1500) = %v, want 1.5s", got)
 	}
 }

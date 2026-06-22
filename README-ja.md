@@ -15,10 +15,14 @@
 - 軽量で高速な実行
 - シンプルな設定ファイル（YAML）
 - 静的ファイルのホスティング
+- フォールバック対応
 - バーチャルホストサポート
+- グレースフルシャットダウン
+- 設定のホットリロード（SIGHUP）
+- アクセスログの再オープン（SIGUSR1、ローテーション用）
 - 詳細なアクセスログ（nginx互換）
 - アクセスログの構造化出力（JSON）
-- TLS/SSL対応
+- TLS/SSL対応（TLS 1.2以上）
 - トレースID対応
 - タイムアウト制御
 
@@ -34,8 +38,8 @@ go get github.com/bmf-san/gondola
 
 ### Docker
 ```bash
-docker pull bmf-san/gondola
-docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmf-san/gondola
+docker pull bmfsan/gondola
+docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmfsan/gondola
 ```
 
 ## 使用方法
@@ -46,9 +50,9 @@ docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmf-san/gondola
 Usage: gondola [options]
 
 Options:
-  -config string    設定ファイルのパス（デフォルト: /etc/gondola/config.yaml）
-  -version         バージョン情報を表示
-  -help           ヘルプを表示
+  -config string    設定ファイルのパス（デフォルト: config.yaml）
+  -version          バージョン情報を表示
+  -help             ヘルプを表示
 ```
 
 ### 環境変数
@@ -72,19 +76,28 @@ Gondolaは以下のシグナルを処理します：
 proxy:
   port: "8080"
   read_header_timeout: 2000  # ミリ秒
+  read_timeout: 30000        # ミリ秒
+  write_timeout: 30000       # ミリ秒
+  idle_timeout: 60000        # ミリ秒
   shutdown_timeout: 3000     # ミリ秒
-  log_level: "info"         # debug, info, warn, error
+  max_header_bytes: 1048576  # バイト (1 MiB)
+  # tls_cert_path: /path/to/cert.pem
+  # tls_key_path: /path/to/key.pem
+  # log_file: /var/log/gondola/access.log  # 既定: 標準出力
   static_files:
     - path: /public/
       dir: /path/to/public
+      fallback_path: 404.html  # dir からの相対パス
 
 upstreams:
   - host_name: api.example.com
     target: http://localhost:3000
-    read_timeout: 5000      # ミリ秒
-    write_timeout: 5000     # ミリ秒
+    read_timeout: 5000      # ミリ秒（アップストリームのレスポンスヘッダ待ち）
+    write_timeout: 5000     # ミリ秒（アップストリームへの接続タイムアウト）
   - host_name: web.example.com
     target: http://localhost:8000
+
+log_level: "info"           # debug, info, warn, error
 ```
 
 ### 起動例
@@ -103,7 +116,7 @@ Docker での起動：
 ```bash
 docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml \
           -p 8080:8080 \
-          bmf-san/gondola
+          bmfsan/gondola
 ```
 
 systemd での起動：

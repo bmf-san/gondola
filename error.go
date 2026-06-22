@@ -2,14 +2,7 @@ package gondola
 
 import (
 	"fmt"
-	"net/http"
 )
-
-// Gondola is a proxy server.
-type Gondola struct {
-	config *Config
-	server *http.Server
-}
 
 // ConfigLoadError is an error that occurs when loading the configuration.
 type ConfigLoadError struct {

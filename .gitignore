@@ -9,6 +9,5 @@ __debug_bin
 dist/
 
 # _examples
-_examples/proxy/main
-_examples/proxy/certificates
+_examples/standalone/standalone
 dist/

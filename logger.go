@@ -2,26 +2,105 @@ package gondola
 
 import (
 	"context"
+	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
+	"sync"
 
 	"github.com/google/uuid"
 )
 
-// Logger is a logger.
+// Logger wraps slog.Logger together with the underlying writer so that access
+// logs can be reopened after rotation (e.g. on SIGUSR1).
 type Logger struct {
 	*slog.Logger
+	writer *reopenableWriter
 }
 
-// NewLogger creates a logger.
-func NewLogger(level int) *Logger {
-	handler := TraceIDHandler{slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.Level(level),
-	})}
-	logger := slog.New(handler)
-	return &Logger{
-		logger,
+// NewLogger creates a JSON logger at the given level. When path is empty logs
+// are written to stdout; otherwise they are appended to the file at path,
+// which can be reopened via Reopen.
+func NewLogger(level slog.Level, path string) (*Logger, error) {
+	w, err := newReopenableWriter(path)
+	if err != nil {
+		return nil, err
 	}
+	handler := TraceIDHandler{slog.NewJSONHandler(w, &slog.HandlerOptions{
+		Level: level,
+	})}
+	return &Logger{
+		Logger: slog.New(handler),
+		writer: w,
+	}, nil
+}
+
+// Reopen reopens the underlying log file. It is a no-op when logging to stdout.
+func (l *Logger) Reopen() error {
+	return l.writer.reopen()
+}
+
+// Close closes the underlying log file. It is a no-op when logging to stdout.
+func (l *Logger) Close() error {
+	return l.writer.Close()
+}
+
+// reopenableWriter is an io.Writer backed by either stdout or a file that can
+// be reopened (closing the old descriptor) to support external log rotation.
+type reopenableWriter struct {
+	path string
+	mu   sync.Mutex
+	f    *os.File
+	w    io.Writer
+}
+
+func newReopenableWriter(path string) (*reopenableWriter, error) {
+	rw := &reopenableWriter{path: path}
+	if path == "" {
+		rw.w = os.Stdout
+		return rw, nil
+	}
+	if err := rw.reopen(); err != nil {
+		return nil, err
+	}
+	return rw, nil
+}
+
+func (rw *reopenableWriter) Write(p []byte) (int, error) {
+	rw.mu.Lock()
+	defer rw.mu.Unlock()
+	return rw.w.Write(p)
+}
+
+func (rw *reopenableWriter) reopen() error {
+	if rw.path == "" {
+		return nil // stdout: nothing to reopen
+	}
+	// #nosec G304 -- path is operator-provided configuration, not user input.
+	f, err := os.OpenFile(filepath.Clean(rw.path), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	rw.mu.Lock()
+	old := rw.f
+	rw.f = f
+	rw.w = f
+	rw.mu.Unlock()
+	if old != nil {
+		_ = old.Close()
+	}
+	return nil
+}
+
+func (rw *reopenableWriter) Close() error {
+	rw.mu.Lock()
+	defer rw.mu.Unlock()
+	if rw.f != nil {
+		err := rw.f.Close()
+		rw.f = nil
+		return err
+	}
+	return nil // stdout: never close
 }
 
 // WithTraceID adds a trace ID to the context.

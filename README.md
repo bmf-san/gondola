@@ -19,9 +19,11 @@ A simple and flexible reverse proxy written in Go
 - Fallback support
 - Virtual host support
 - Graceful shutdown
+- Hot configuration reload (SIGHUP)
+- Access log reopen for rotation (SIGUSR1)
 - Detailed access logs (nginx-compatible)
 - Structured access logs (JSON)
-- TLS/SSL support
+- TLS/SSL support (TLS 1.2+)
 - Trace ID support
 - Timeout control
 
@@ -37,8 +39,8 @@ Download the latest binary from the [Releases](https://github.com/bmf-san/gondol
 
 ### Docker
 ```bash
-docker pull bmf-san/gondola
-docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmf-san/gondola
+docker pull bmfsan/gondola
+docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmfsan/gondola
 ```
 
 ## Usage
@@ -48,9 +50,9 @@ docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml bmf-san/gondola
 Usage: gondola [options]
 
 Options:
-  -config string    Path to configuration file (default: /etc/gondola/config.yaml)
-  -version         Display version information
-  -help           Show help
+  -config string    Path to configuration file (default: config.yaml)
+  -version          Display version information
+  -help             Show help
 ```
 
 ### Environment Variables
@@ -71,19 +73,28 @@ Gondola handles the following signals:
 proxy:
   port: "8080"
   read_header_timeout: 2000  # milliseconds
+  read_timeout: 30000        # milliseconds
+  write_timeout: 30000       # milliseconds
+  idle_timeout: 60000        # milliseconds
   shutdown_timeout: 3000     # milliseconds
-  log_level: "info"         # debug, info, warn, error
+  max_header_bytes: 1048576  # bytes (1 MiB)
+  # tls_cert_path: /path/to/cert.pem
+  # tls_key_path: /path/to/key.pem
+  # log_file: /var/log/gondola/access.log  # default: stdout
   static_files:
     - path: /public/
       dir: /path/to/public
+      fallback_path: 404.html  # relative to dir
 
 upstreams:
   - host_name: api.example.com
     target: http://localhost:3000
-    read_timeout: 5000      # milliseconds
-    write_timeout: 5000     # milliseconds
+    read_timeout: 5000      # milliseconds (upstream response header timeout)
+    write_timeout: 5000     # milliseconds (upstream connection timeout)
   - host_name: web.example.com
     target: http://localhost:8000
+
+log_level: "info"           # debug, info, warn, error
 ```
 
 ### Startup Examples
@@ -102,7 +113,7 @@ Start with Docker:
 ```bash
 docker run -v $(pwd)/config.yaml:/etc/gondola/config.yaml \
           -p 8080:8080 \
-          bmf-san/gondola
+          bmfsan/gondola
 ```
 
 Start with systemd:
