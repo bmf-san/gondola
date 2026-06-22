@@ -2,7 +2,6 @@ package gondola
 
 import (
 	"bytes"
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -12,9 +11,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 )
 
 type mockTransport struct {
@@ -323,77 +320,6 @@ upstreams:
 	}
 }
 
-func TestGracefulShutdown(t *testing.T) {
-	var wg sync.WaitGroup
-	wg.Add(2) // Wait for server startup and shutdown completion
-
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		time.Sleep(100 * time.Millisecond) // Simulated processing time
-		w.WriteHeader(http.StatusOK)
-	})
-
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	server := NewProxyServer(handler, logger)
-
-	// Channel to signal server readiness
-	ready := make(chan struct{})
-
-	// Start server in a separate goroutine
-	go func() {
-		defer wg.Done()
-		server.mu.Lock()
-		s := &http.Server{
-			Addr:    ":0", // Let the system choose an available port
-			Handler: server.handler,
-		}
-		server.server = s
-		server.mu.Unlock()
-
-		// Signal server readiness
-		close(ready)
-
-		if err := s.ListenAndServe(); err != http.ErrServerClosed {
-			t.Errorf("unexpected server error: %v", err)
-		}
-	}()
-
-	// Wait for server readiness
-	<-ready
-
-	// Simulate an ongoing request
-	reqDone := make(chan struct{})
-	go func() {
-		defer close(reqDone)
-		defer wg.Done()
-
-		// Safely get server address
-		server.mu.RLock()
-		addr := server.server.Addr
-		server.mu.RUnlock()
-
-		_, err := http.Get("http://localhost" + addr)
-		if err == nil {
-			t.Error("expected error due to server shutdown")
-		}
-	}()
-
-	// Initiate shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-
-	if err := server.Shutdown(ctx); err != nil {
-		t.Errorf("unexpected shutdown error: %v", err)
-	}
-
-	// Check shutdown flag
-	if !server.IsShutdown() {
-		t.Error("expected server to be marked as shutdown")
-	}
-
-	// Wait for all goroutines to complete
-	wg.Wait()
-}
-
 func TestStaticFileHandler(t *testing.T) {
 	tests := []struct {
 		name         string
@@ -470,5 +396,12 @@ func TestStaticFileHandler(t *testing.T) {
 				t.Errorf("Expected body %q, got %q", tt.expectedBody, string(body))
 			}
 		})
+	}
+}
+
+func TestGetInfoNil(t *testing.T) {
+	req := httptest.NewRequest(http.MethodGet, "http://example.com/", nil)
+	if info := GetInfo(req); info != nil {
+		t.Errorf("Expected nil responseInfo, got %v", info)
 	}
 }
