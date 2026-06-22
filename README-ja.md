@@ -16,6 +16,7 @@
 - シンプルな設定ファイル（YAML）
 - 静的ファイルのホスティング
 - フォールバック対応
+- カスタムエラーページ
 - バーチャルホストサポート
 - グレースフルシャットダウン
 - 設定のホットリロード（SIGHUP）
@@ -88,6 +89,10 @@ proxy:
     - path: /public/
       dir: /path/to/public
       fallback_path: 404.html  # dir からの相対パス
+  # error_pages:               # ステータスコード別のカスタムページ（最初の static dir からの相対）
+  #   404: /404.html
+  #   "500 502 503 504": /50x.html
+  #   default: /error.html
 
 upstreams:
   - host_name: api.example.com

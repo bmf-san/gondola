@@ -89,7 +89,12 @@ func newRouter(c *Config, logger *slog.Logger) (http.Handler, error) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	return mux, nil
+	root := ""
+	if len(staticFiles) > 0 {
+		root = staticFiles[0].Dir
+	}
+	pages, defaultPage := parseErrorPages(c.Proxy.ErrorPages, root)
+	return errorPagesMiddleware(mux, pages, defaultPage), nil
 }
 
 // serveStaticFile attempts to serve the request from one of the configured
