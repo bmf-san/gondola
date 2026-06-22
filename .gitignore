@@ -14,4 +14,5 @@ _examples/proxy/main
 _examples/proxy/certificates
 _examples/backend1/backend
 _examples/backend2/backend
+_examples/standalone/standalone
 dist/

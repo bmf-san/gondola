@@ -1,7 +1,31 @@
 # _examples
 This is a sample code for using gondola as a proxy server and a backend server to verify their operation.
 
-# Get Started
+There are two examples:
+- **`standalone/`** — the quickest way to try gondola (`go run .`, no Docker).
+- **Docker Compose** — a production-like multi-host setup with TLS.
+
+# Quickstart (no Docker)
+Starts two in-process backends and a gondola reverse proxy in front of them.
+No Docker and no `/etc/hosts` changes required.
+
+```sh
+cd standalone
+go run .
+```
+
+In another terminal:
+```sh
+# virtual-host routing by Host header
+curl -H "Host: backend1.local" http://localhost:8080/
+curl -H "Host: backend2.local" http://localhost:8080/
+
+# static files + fallback
+curl http://localhost:8080/public/index.html
+curl http://localhost:8080/public/missing.html   # -> 404.html
+```
+
+# Docker Compose example (TLS, virtual hosts)
 ## Edit a /etc/hosts
 ```sh
 sudo vim /etc/hosts
