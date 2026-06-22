@@ -1,0 +1,41 @@
+site_name: Gondola
+site_description: A simple and flexible reverse proxy written in Go
+site_url: https://bmf-san.github.io/gondola/
+repo_url: https://github.com/bmf-san/gondola
+repo_name: bmf-san/gondola
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - content.code.copy
+    - search.suggest
+
+markdown_extensions:
+  - admonition
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Getting Started: getting-started.md
+  - Configuration: configuration.md
+  - Features: features.md
+  - Access Logs: access-logs.md

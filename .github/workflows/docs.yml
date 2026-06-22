@@ -1,0 +1,31 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+# mkdocs gh-deploy publishes the built site to the gh-pages branch.
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    name: Build and deploy docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
+      - name: Set up Python
+        # Dependabot (github-actions ecosystem) keeps this updated; pin to a SHA if desired.
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install MkDocs Material
+        run: pip install mkdocs-material
+      - name: Build and deploy to GitHub Pages
+        run: mkdocs gh-deploy --force
