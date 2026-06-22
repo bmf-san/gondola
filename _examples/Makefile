@@ -5,17 +5,16 @@ help:
 
 .DEFAULT_GOAL := help
 
-CURRENT_BRANCH_GIT_COMMIT_HASH := $(shell git rev-parse HEAD)
+.PHONY: create-certs
+create-certs: ## Generate self-signed certificates for the proxy.
+	mkdir -p ./proxy/certificates
+	cd ./proxy/certificates && go run $$(go env GOROOT)/src/crypto/tls/generate_cert.go -rsa-bits 2048 -host localhost,backend1.local,backend2.local
 
 .PHONY: up
-up: ## Run docker compose up
-	cd ../cmd && pwd && GOOS=linux GOARCH=amd64 go build -o ../_examples/proxy/main
+up: ## Build the gondola binary and start the example stack.
+	cd .. && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o _examples/proxy/gondola ./cmd
 	docker compose up --build
 
 .PHONY: down
-down: ## Run docker compose down
-	docker compose dow
-
-.PHONY: create-certs
-create-certs: ## Create certificates
-	cd ./proxy/certificates && go run $$(go env GOROOT)/src/crypto/tls/generate_cert.go -rsa-bits 2048 -host localhost
+down: ## Stop the example stack.
+	docker compose down

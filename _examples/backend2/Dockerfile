@@ -1,9 +1,11 @@
-FROM golang:1.24.1-alpine
-
-WORKDIR /app
-
+# Build stage.
+FROM golang:1.24-alpine AS build
+WORKDIR /src
 COPY . .
+RUN CGO_ENABLED=0 go build -o /out/backend .
 
-RUN go build -o main .
-
-CMD ["./main"]
+# Runtime stage.
+FROM gcr.io/distroless/static-debian12
+COPY --from=build /out/backend /backend
+EXPOSE 8082
+ENTRYPOINT ["/backend"]

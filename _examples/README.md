@@ -15,8 +15,13 @@ sudo vim /etc/hosts
 
 ## Start a gondola
 ```sh
-make create-cert
+make create-certs
 make up
+```
+
+To stop the stack:
+```sh
+make down
 ```
 
 # Demonstration
@@ -36,4 +41,4 @@ https://backend1.local/public/example.html # Successfully displays example.html
 ```
 https://backend1.local/public/not-exist.html  # Access to a non-existent file
 ```
-When accessing a non-existent file, it will redirect to the 404.html page specified in config.yaml (`fallback_path: /public/404.html`).
+When accessing a non-existent file, the configured fallback file is served (`fallback_path: 404.html`, relative to the static `dir`).

@@ -1,16 +1,23 @@
 proxy:
-  port: 443
+  port: "443"
   read_header_timeout: 2000
+  read_timeout: 30000
+  write_timeout: 30000
+  idle_timeout: 60000
   shutdown_timeout: 3000
   tls_cert_path: certificates/cert.pem
   tls_key_path: certificates/key.pem
   static_files:
     - path: /public/
       dir: ./public
-      fallback_path: /public/404.html
+      fallback_path: 404.html # relative to dir
 upstreams:
   - host_name: backend1.local
-    target: http://backend1:8081 # backend1　is the name of the container
+    target: http://backend1:8081 # backend1 is the name of the container
+    read_timeout: 5000
+    write_timeout: 5000
   - host_name: backend2.local
-    target: http://backend2:8082 # backend2　is the name of the container
-log_level: 0 # Debug:-4 Info:0 Warn:4 Error:8
+    target: http://backend2:8082 # backend2 is the name of the container
+    read_timeout: 8000
+    write_timeout: 8000
+log_level: "info" # debug, info, warn, error
