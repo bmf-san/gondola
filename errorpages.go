@@ -104,7 +104,7 @@ func (w *errorPageWriter) Write(b []byte) (int, error) {
 // false (so the caller falls back to the built-in response) when the page file
 // cannot be read.
 func (w *errorPageWriter) servePage(code int, page string) bool {
-	// #nosec G304 -- page path is operator-provided configuration, not user input.
+	// #nosec G304 G703 -- page path is operator-provided configuration, not user input.
 	content, err := os.ReadFile(page)
 	if err != nil {
 		return false

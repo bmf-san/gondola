@@ -106,13 +106,20 @@ func serveStaticFile(w http.ResponseWriter, r *http.Request, staticFiles []Stati
 		}
 
 		p := strings.TrimPrefix(r.URL.Path, sf.Path)
+		// Guard against path traversal: the resolved path must stay within the
+		// configured static directory.
+		fullPath, ok := safeStaticPath(sf.Dir, p)
+		if !ok {
+			http.NotFound(w, r)
+			return true
+		}
+
 		// Rewrite the request path so http.ServeFile's built-in protection
-		// against "../" traversal applies to the trimmed path.
+		// against "../" traversal also applies to the trimmed path.
 		r2 := r.Clone(r.Context())
 		r2.URL.Path = p
 
-		fullPath := filepath.Join(sf.Dir, p)
-		fileInfo, err := os.Stat(fullPath)
+		fileInfo, err := os.Stat(fullPath) // #nosec G304 G703 -- fullPath validated within sf.Dir by safeStaticPath
 
 		useFallback := false
 		switch {
@@ -120,8 +127,8 @@ func serveStaticFile(w http.ResponseWriter, r *http.Request, staticFiles []Stati
 			useFallback = true
 		case fileInfo.IsDir():
 			indexPath := filepath.Join(fullPath, "index.html")
-			if _, err := os.Stat(indexPath); err == nil {
-				http.ServeFile(w, r2, indexPath)
+			if _, err := os.Stat(indexPath); err == nil { // #nosec G304 G703 -- derived from validated fullPath
+				http.ServeFile(w, r2, indexPath) // #nosec G304 G703 -- derived from validated fullPath
 				return true
 			}
 			useFallback = true
@@ -136,10 +143,21 @@ func serveStaticFile(w http.ResponseWriter, r *http.Request, staticFiles []Stati
 			return true
 		}
 
-		http.ServeFile(w, r2, fullPath)
+		http.ServeFile(w, r2, fullPath) // #nosec G304 G703 -- fullPath validated within sf.Dir
 		return true
 	}
 	return false
+}
+
+// safeStaticPath joins p onto dir, returning the cleaned path only when it
+// stays within dir. This guards static file serving against path traversal.
+func safeStaticPath(dir, p string) (string, bool) {
+	cleanDir := filepath.Clean(dir)
+	full := filepath.Join(cleanDir, p)
+	if full != cleanDir && !strings.HasPrefix(full, cleanDir+string(os.PathSeparator)) {
+		return "", false
+	}
+	return full, true
 }
 
 // validateTarget reports whether target is a usable absolute proxy URL.
