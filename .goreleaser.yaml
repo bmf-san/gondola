@@ -1,4 +1,4 @@
-version: 1
+version: 2
 
 before:
   hooks:
@@ -20,36 +20,30 @@ builds:
       - amd64
       - arm
       - arm64
+    ignore:
+      # 32-bit arm is not a valid target for these platforms.
+      - goos: windows
+        goarch: arm
+      - goos: darwin
+        goarch: arm
     main: ./cmd/main.go
 
-dockers:
-  - image_templates:
-      - bmfsan/gondola:latest-amd64
-      - bmfsan/gondola:{{ .Version }}-amd64
-    use: buildx
-    goos: linux
-    goarch: amd64
-    build_flag_templates:
-      - --platform=linux/amd64
-  - image_templates:
-      - bmfsan/gondola:latest-arm64
-      - bmfsan/gondola:{{ .Version }}-arm64
-    use: buildx
-    goos: linux
-    goarch: arm64
-    build_flag_templates:
-      - --platform=linux/arm64
-  - image_templates:
-      - bmfsan/gondola:latest-arm
-      - bmfsan/gondola:{{ .Version }}-arm
-    use: buildx
-    goos: linux
-    goarch: arm
-    build_flag_templates:
-      - --platform=linux/arm
+dockers_v2:
+  - images:
+      - bmfsan/gondola
+    tags:
+      - "{{ .Version }}"
+      - latest
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      - linux/arm/v6
+    # SBOM/provenance attestations are disabled to keep parity with the
+    # previous setup; enable later if desired.
+    sbom: false
 
 archives:
-  - format: tar.gz
+  - formats: [ tar.gz ]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -61,7 +55,7 @@ archives:
     # use zip for windows archives
     format_overrides:
       - goos: windows
-        format: zip
+        formats: [ zip ]
 
 changelog:
   sort: asc

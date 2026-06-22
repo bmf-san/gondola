@@ -1,29 +1,32 @@
 name: Dry run GoReleaser
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ '1.24.1' ]
+        go-version: [ 'stable' ]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:
           go-version: ${{ matrix.go-version }}
       - name: Dry run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7
         with:
           distribution: goreleaser
           version: latest
-          args: release --rm-dist --skip-publish --snapshot
-          workdir: cmd
+          args: release --snapshot --clean --skip=publish,docker
