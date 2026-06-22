@@ -22,9 +22,11 @@ type responseInfo struct {
 	queryString string
 	host        string
 	requestSize int64
+	proto       string
 
 	// Response info
 	status         string
+	statusCode     int
 	bodyBytesSent  int64
 	totalBytesSent int64
 	responseTime   float64
@@ -147,6 +149,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		queryString:   r.URL.RawQuery,
 		host:          r.Host,
 		requestSize:   r.ContentLength,
+		proto:         r.Proto,
 		referer:       r.Header.Get("Referer"),
 		userAgent:     r.Header.Get("User-Agent"),
 	}
@@ -157,6 +160,7 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.proxy.ServeHTTP(rw, r)
 
 	info.status = http.StatusText(rw.status)
+	info.statusCode = rw.status
 	info.bodyBytesSent = rw.size
 	info.totalBytesSent = rw.size // header size is not calculated at this time
 	info.responseTime = time.Since(start).Seconds()
@@ -173,9 +177,11 @@ func (h *ProxyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		slog.String("query_string", info.queryString),
 		slog.String("host", info.host),
 		slog.Int64("request_size", info.requestSize),
+		slog.String("protocol", info.proto),
 
 		// Response info
 		slog.String("status", info.status),
+		slog.Int("status_code", info.statusCode),
 		slog.Int64("body_bytes_sent", info.bodyBytesSent),
 		slog.Int64("bytes_sent", info.totalBytesSent),
 		slog.Float64("request_time", info.responseTime),

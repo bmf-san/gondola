@@ -98,6 +98,8 @@ upstreams:
     target: http://localhost:8000
 
 log_level: "info"           # debug, info, warn, error
+log_format: "json"          # json, common, combined, custom
+# log_custom_format: '${remote_ip} ${method} ${uri} ${status} ${request_time}'
 ```
 
 ### 起動例
@@ -137,6 +139,15 @@ WantedBy=multi-user.target
 ## アクセスログ
 
 nginxと互換性のある詳細なアクセスログを出力します。
+
+### ログ形式
+アクセスログの形式は `log_format` で選択できます:
+- `json`（デフォルト）— slog による構造化 JSON
+- `common` — Apache Common Log Format
+- `combined` — Apache Combined Log Format
+- `custom` — `${...}` 変数を使ったテンプレート（`log_custom_format` で指定）
+
+カスタム変数: `${timestamp}`, `${remote_ip}`, `${method}`, `${uri}`, `${protocol}`, `${status}`, `${user_agent}`, `${referer}`, `${request_time}`, `${trace_id}`。
 
 ### ログフィールド
 

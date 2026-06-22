@@ -96,6 +96,8 @@ log_level: debug
 			},
 		},
 		"debug",
+		"",
+		"",
 	}
 
 	actual := &Config{}

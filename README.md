@@ -95,6 +95,8 @@ upstreams:
     target: http://localhost:8000
 
 log_level: "info"           # debug, info, warn, error
+log_format: "json"          # json, common, combined, custom
+# log_custom_format: '${remote_ip} ${method} ${uri} ${status} ${request_time}'
 ```
 
 ### Startup Examples
@@ -134,6 +136,15 @@ WantedBy=multi-user.target
 ## Access Logs
 
 Gondola outputs detailed access logs compatible with nginx.
+
+### Log Format
+The access log format is selectable via `log_format`:
+- `json` (default) — structured JSON via slog
+- `common` — Apache Common Log Format
+- `combined` — Apache Combined Log Format
+- `custom` — a template using `${...}` variables (set via `log_custom_format`)
+
+Custom variables: `${timestamp}`, `${remote_ip}`, `${method}`, `${uri}`, `${protocol}`, `${status}`, `${user_agent}`, `${referer}`, `${request_time}`, `${trace_id}`.
 
 ### Log Fields
 
