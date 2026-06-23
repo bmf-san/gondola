@@ -1,4 +1,4 @@
-[English](https://github.com/bmf-san/gondola) [日本語](https://github.com/bmf-san/gondola/blob/master/README-ja.md)
+[English](README.md) [日本語](README-ja.md)
 
 # Gondola
 [![Mentioned in Awesome Go](https://awesome.re/mentioned-badge.svg)](https://github.com/avelino/awesome-go)
