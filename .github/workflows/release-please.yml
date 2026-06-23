@@ -1,0 +1,49 @@
+name: release-please
+
+# Automates releases the same way the ggc project does. On every push to
+# main, release-please maintains a long-lived "release PR" that bumps the
+# version and regenerates CHANGELOG.md from the Conventional Commits history.
+# Merging that PR creates the GitHub Release and the version tag, which then
+# builds and publishes the artifacts (see the `release` job below).
+on:
+  push:
+    branches: [main]
+
+# Start from no permissions and grant exactly what each job needs. Satisfies
+# the Scorecard Token-Permissions check.
+permissions: {}
+
+jobs:
+  release-please:
+    name: Maintain release PR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - name: Run release-please
+        id: release
+        uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          config-file: .release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # When the release PR is merged, release-please creates the tag using the
+  # default GITHUB_TOKEN. GitHub intentionally prevents GITHUB_TOKEN events
+  # from starting new workflow runs, so the `push: tags` trigger in
+  # release.yml does not fire. Invoke that workflow directly here instead so
+  # the artifacts are still built and published for the freshly created tag.
+  release:
+    name: Build release artifacts
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    permissions:
+      contents: write
+    uses: ./.github/workflows/release.yml
+    with:
+      tag_name: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit

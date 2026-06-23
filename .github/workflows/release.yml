@@ -4,6 +4,22 @@ on:
   push:
     tags:
       - '*'
+  # Invoked by release-please.yml right after it creates a release tag. A
+  # tag pushed by GITHUB_TOKEN cannot trigger the `push: tags` event above,
+  # so release-please calls this workflow directly. Also usable on its own
+  # to rebuild an existing tag without re-tagging.
+  workflow_call:
+    inputs:
+      tag_name:
+        description: 'Tag to build and release (e.g. 2.0.0).'
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag to build and release (e.g. 2.0.0).'
+        required: true
+        type: string
 
 # Default the workflow token to no permissions and grant exactly what
 # GoReleaser needs at the job level. Satisfies the Scorecard Token-Permissions check.
@@ -22,6 +38,10 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
         with:
           fetch-depth: 0
+          # For tag pushes, github.ref already points at the tag. When
+          # invoked via workflow_call/workflow_dispatch, check out the
+          # requested tag so GoReleaser sees the correct version.
+          ref: ${{ inputs.tag_name || github.ref }}
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
         with:
