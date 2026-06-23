@@ -35,9 +35,11 @@ dockers_v2:
       - "{{ .Version }}"
       - latest
     platforms:
+      # gcr.io/distroless/static-debian12 (the base image) publishes amd64
+      # and arm64 only, so the Docker image targets just those. 32-bit arm
+      # users can still use the linux_armv6 archive from the release.
       - linux/amd64
       - linux/arm64
-      - linux/arm/v6
     # SBOM/provenance attestations are disabled to keep parity with the
     # previous setup; enable later if desired.
     sbom: false
