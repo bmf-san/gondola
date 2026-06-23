@@ -1,0 +1,33 @@
+site:
+  title: "Gondola"
+  description: "A simple and flexible reverse proxy written in Go."
+  base_url: "https://bmf-san.github.io/gondola"
+  language: "en"
+  github_repo: "https://github.com/bmf-san/gondola"
+  github_branch: "main"
+
+build:
+  content_dir: "content"
+  output_dir: "public"
+  assets_dir: "assets"
+  static_dir: "static"
+  parallelism: 4
+
+theme:
+  name: "sleyt"
+  dir: "themes/sleyt"
+  params:
+    # GitHub Pages serves the site at https://bmf-san.github.io/gondola/.
+    # All in-template links MUST be prefixed with this base_path; when the
+    # site is published at a custom domain (root), set this to an empty string.
+    base_path: "/gondola"
+    sleyt_css: "/gondola/assets/css/sleyt.css"
+    github_url: "https://github.com/bmf-san/gondola"
+
+syntax_highlight:
+  theme: "github"
+  line_numbers: false
+
+i18n:
+  locales: [en]
+  default_locale: en

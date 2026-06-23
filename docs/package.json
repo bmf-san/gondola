@@ -1,0 +1,14 @@
+{
+  "name": "gondola-docs",
+  "private": true,
+  "description": "gondola documentation site (built with gohan + sleyt).",
+  "scripts": {
+    "build:css": "mkdir -p assets/css && cp node_modules/sleyt/dist/css/index.css assets/css/sleyt.css",
+    "build": "npm run build:css && gohan build",
+    "serve": "npm run build:css && gohan serve",
+    "clean": "rm -rf public assets/css"
+  },
+  "dependencies": {
+    "sleyt": "^1.4.0"
+  }
+}

@@ -1,0 +1,93 @@
+{{- $base := .Config.Theme.Params.base_path -}}
+{{- $article := index .Articles 0 -}}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="{{$article.FrontMatter.Description}}">
+  <title>{{$article.FrontMatter.Title}} — {{.Config.Site.Title}}</title>
+  <link rel="stylesheet" href="{{.Config.Theme.Params.sleyt_css}}">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="navbar-brand" href="{{$base}}/">Gondola</a>
+    <input type="checkbox" id="navbar-toggle" class="navbar-toggle-checkbox">
+    <label for="navbar-toggle" class="navbar-toggle-label"><span></span><span></span><span></span></label>
+    <ul class="navbar-nav">
+      <li><a class="navbar-item" href="{{$base}}/guide/getting-started/">Guide</a></li>
+      <li><a class="navbar-item" href="{{$base}}/features/reverse-proxy/">Features</a></li>
+      <li><a class="navbar-item" href="{{$.Config.Theme.Params.github_url}}" target="_blank" rel="noopener">GitHub</a></li>
+    </ul>
+  </nav>
+
+  <div class="dashboard">
+    <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-checkbox">
+    <aside class="sidebar">
+      <a class="sidebar-brand" href="{{$base}}/">
+        <span class="sidebar-brand-icon">G</span>
+        Gondola docs
+      </a>
+      <nav class="sidebar-nav">
+        <span class="sidebar-section-label">Guide</span>
+        <a class="sidebar-link" href="{{$base}}/guide/getting-started/">Getting Started</a>
+        <a class="sidebar-link" href="{{$base}}/guide/configuration/">Configuration</a>
+        <a class="sidebar-link" href="{{$base}}/guide/access-logs/">Access Logs</a>
+
+        <span class="sidebar-section-label">Features</span>
+        <a class="sidebar-link" href="{{$base}}/features/reverse-proxy/">Reverse Proxy</a>
+        <a class="sidebar-link" href="{{$base}}/features/static-files/">Static Files &amp; Error Pages</a>
+        <a class="sidebar-link" href="{{$base}}/features/tls/">TLS</a>
+        <a class="sidebar-link" href="{{$base}}/features/signals/">Signals &amp; Reload</a>
+      </nav>
+    </aside>
+
+    <div class="dashboard-main">
+      <div class="dashboard-content">
+        <nav aria-label="breadcrumb">
+          <ol class="breadcrumbs">
+            <li class="breadcrumbs-item"><a class="breadcrumbs-link" href="{{$base}}/">Home</a></li>
+            <li class="breadcrumbs-separator">/</li>
+            {{if $article.FrontMatter.Categories}}<li class="breadcrumbs-item"><a class="breadcrumbs-link" href="{{$base}}/categories/{{index $article.FrontMatter.Categories 0}}/">{{index $article.FrontMatter.Categories 0}}</a></li>
+            <li class="breadcrumbs-separator">/</li>{{end}}
+            <li class="breadcrumbs-item active"><span class="breadcrumbs-link">{{$article.FrontMatter.Title}}</span></li>
+          </ol>
+        </nav>
+
+        <article class="prose prose-full mt-6">
+          <h1>{{$article.FrontMatter.Title}}</h1>
+          {{$article.HTMLContent}}
+        </article>
+
+        {{if $.Config.Site.GitHubRepo}}
+        <div class="mt-8 pt-6 border-t">
+          <a class="btn btn-sm btn-outline-primary" href="{{$.Config.Site.GitHubRepo}}/edit/{{$.Config.Site.GitHubBranch}}/docs/content/{{$article.ContentPath}}" target="_blank" rel="noopener">
+            Edit this page on GitHub
+          </a>
+        </div>
+        {{end}}
+
+        {{if $.RelatedArticles}}
+        <section class="mt-12">
+          <h2 class="text-2xl font-bold mb-4">Related</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {{range $.RelatedArticles}}
+            <a class="card" href="{{$base}}{{.URL}}">
+              <div class="card-header-compact">{{.FrontMatter.Title}}</div>
+              <div class="card-body-compact"><p class="text-sm text-secondary">{{.FrontMatter.Description}}</p></div>
+            </a>
+            {{end}}
+          </div>
+        </section>
+        {{end}}
+      </div>
+    </div>
+  </div>
+
+  <footer class="border-t py-8 text-center text-sm text-secondary">
+    <div class="container">
+      <p>&copy; bmf-san. Built with <a href="https://github.com/bmf-san/gohan" target="_blank" rel="noopener">gohan</a> &amp; <a href="https://github.com/bmf-san/sleyt" target="_blank" rel="noopener">sleyt</a>.</p>
+    </div>
+  </footer>
+</body>
+</html>

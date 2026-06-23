@@ -1,0 +1,63 @@
+name: Deploy Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build docs site (gohan + sleyt)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v6.0.0
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.0.0
+        with:
+          go-version: stable
+      - name: Set up Node
+        # Tagged actions in this workflow are kept updated by Dependabot (github-actions ecosystem).
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - name: Install gohan
+        run: go install github.com/bmf-san/gohan/cmd/gohan@latest
+      - name: Install theme (sleyt)
+        working-directory: docs
+        run: npm install
+      - name: Build docs site
+        working-directory: docs
+        run: npm run build
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs/public
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5
