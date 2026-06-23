@@ -10,7 +10,7 @@ import (
 )
 
 func TestNewLogger(t *testing.T) {
-	logger, err := NewLogger(slog.LevelInfo, "")
+	logger, err := NewLogger(slog.LevelInfo, "", "json", "")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -21,7 +21,7 @@ func TestNewLogger(t *testing.T) {
 
 func TestLoggerReopen(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "access.log")
-	logger, err := NewLogger(slog.LevelInfo, path)
+	logger, err := NewLogger(slog.LevelInfo, path, "json", "")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

@@ -62,7 +62,7 @@ func NewGondola(r io.Reader, opts ...Option) (*Gondola, error) {
 		level = ParseLevel(g.logLevel)
 	}
 
-	logger, err := NewLogger(level, c.Proxy.LogFile)
+	logger, err := NewLogger(level, c.Proxy.LogFile, c.LogFormat, c.LogCustomFormat)
 	if err != nil {
 		return nil, &ProxyServerError{Err: err}
 	}
@@ -84,7 +84,7 @@ func NewGondola(r io.Reader, opts ...Option) (*Gondola, error) {
 func NewServer(c *Config) (*http.Server, error) {
 	c.setDefaults()
 
-	logger, err := NewLogger(c.SlogLevel(), c.Proxy.LogFile)
+	logger, err := NewLogger(c.SlogLevel(), c.Proxy.LogFile, c.LogFormat, c.LogCustomFormat)
 	if err != nil {
 		return nil, err
 	}

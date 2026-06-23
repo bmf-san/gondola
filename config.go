@@ -69,9 +69,11 @@ type Upstream struct {
 
 // Config is a struct that represents the configuration of the proxy.
 type Config struct {
-	Proxy     Proxy      `yaml:"proxy"`
-	Upstreams []Upstream `yaml:"upstreams"`
-	LogLevel  string     `yaml:"log_level"` // debug, info, warn, error
+	Proxy           Proxy      `yaml:"proxy"`
+	Upstreams       []Upstream `yaml:"upstreams"`
+	LogLevel        string     `yaml:"log_level"`         // debug, info, warn, error
+	LogFormat       string     `yaml:"log_format"`        // json, common, combined, custom
+	LogCustomFormat string     `yaml:"log_custom_format"` // template used when LogFormat is "custom"
 }
 
 // Load reads the configuration from a reader, expands environment variables of
@@ -114,6 +116,9 @@ func (c *Config) setDefaults() {
 	}
 	if c.LogLevel == "" {
 		c.LogLevel = defaultLogLevel
+	}
+	if c.LogFormat == "" {
+		c.LogFormat = logFormatJSON
 	}
 	for i := range c.Upstreams {
 		if c.Upstreams[i].ReadTimeout == 0 {
