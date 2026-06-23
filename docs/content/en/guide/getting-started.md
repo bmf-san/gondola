@@ -1,4 +1,10 @@
-# Getting Started
+---
+title: "Getting Started"
+description: "Install gondola and run your first reverse proxy."
+slug: "getting-started"
+categories:
+  - guide
+---
 
 ## Installation
 
@@ -46,4 +52,4 @@ curl http://localhost:8080/public/index.html
 gondola -config config.yaml
 ```
 
-See [Configuration](configuration.md) for the full file reference.
+See [Configuration](/gondola/guide/configuration/) for the full file reference.

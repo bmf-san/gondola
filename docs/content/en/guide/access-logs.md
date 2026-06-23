@@ -1,4 +1,10 @@
-# Access Logs
+---
+title: "Access Logs"
+description: "Access log formats and fields."
+slug: "access-logs"
+categories:
+  - guide
+---
 
 Gondola emits detailed access logs compatible with nginx.
 

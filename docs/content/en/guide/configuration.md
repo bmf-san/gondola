@@ -1,4 +1,10 @@
-# Configuration
+---
+title: "Configuration"
+description: "The gondola YAML configuration reference."
+slug: "configuration"
+categories:
+  - guide
+---
 
 Gondola is configured with a single YAML file. Environment variables of the
 form `$VAR` / `${VAR}` are expanded before parsing.
@@ -52,22 +58,8 @@ log_format: "json"           # json, common, combined, custom
 | `max_header_bytes` | int | Maximum request header size |
 | `tls_cert_path` / `tls_key_path` | string | Enable TLS when both are set |
 | `log_file` | string | Log file path (default: stdout) |
-| `static_files` | list | Static file rules (see below) |
+| `static_files` | list | Static file rules |
 | `error_pages` | map | Custom error pages by status code |
-
-### static_files
-
-| Key | Type | Description |
-|---|---|---|
-| `path` | string | URL path prefix |
-| `dir` | string | Local directory to serve |
-| `fallback_path` | string | File served on miss (relative to `dir`) |
-
-### error_pages
-
-Maps a status code, a space-separated group of codes, or `default` to a page
-path (relative to the first `static_files` directory). The original status
-code is preserved.
 
 ## upstreams
 
