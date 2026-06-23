@@ -17,6 +17,7 @@ A simple and flexible reverse proxy written in Go
 - Simple configuration file (YAML)
 - Static file hosting
 - Fallback support
+- Custom error pages
 - Virtual host support
 - Graceful shutdown
 - Hot configuration reload (SIGHUP)
@@ -85,6 +86,10 @@ proxy:
     - path: /public/
       dir: /path/to/public
       fallback_path: 404.html  # relative to dir
+  # error_pages:               # custom pages by status (relative to first static dir)
+  #   404: /404.html
+  #   "500 502 503 504": /50x.html
+  #   default: /error.html
 
 upstreams:
   - host_name: api.example.com

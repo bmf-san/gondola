@@ -39,6 +39,9 @@ type Proxy struct {
 	TLSKeyPath        string       `yaml:"tls_key_path"`
 	LogFile           string       `yaml:"log_file"`
 	StaticFiles       []StaticFile `yaml:"static_files"`
+	// ErrorPages maps HTTP status codes (or space-separated groups, or
+	// "default") to custom error page paths relative to the first static dir.
+	ErrorPages map[string]string `yaml:"error_pages"`
 }
 
 // StaticFile is a struct that represents a static file configuration.
