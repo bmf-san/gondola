@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/bmf-san/gondola/compare/2.0.0...2.0.1) (2026-06-23)
+
+
+### Continuous Integration
+
+* drop unsupported linux/arm/v6 from docker release platforms ([#86](https://github.com/bmf-san/gondola/issues/86)) ([fe46c64](https://github.com/bmf-san/gondola/commit/fe46c645cb0671db598a26e074c838f52df6b637))
+
 ## [2.0.0](https://github.com/bmf-san/gondola/compare/1.2.0...2.0.0) (2026-06-23)
 
 
