@@ -30,7 +30,7 @@ jobs:
           go-version: stable
       - name: Set up Node
         # Tagged actions in this workflow are kept updated by Dependabot (github-actions ecosystem).
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
       - name: Install gohan
